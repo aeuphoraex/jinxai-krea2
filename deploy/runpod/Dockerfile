@@ -17,10 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # `click` is imported at the top of krea2/inference.py — without it the worker dies at import,
 # not at the first job, and the failure looks like a crashed container rather than a missing dep.
-RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir \
+# Ubuntu 24.04's system Python is PEP 668 "externally managed": pip refuses to write to it
+# without this flag, which is how the first CI build failed (exit 1, before any download).
+# In a container nothing else owns these packages, so the exemption is the accurate one.
+RUN python -m pip install --no-cache-dir --break-system-packages --upgrade pip \
+    && python -m pip install --no-cache-dir --break-system-packages \
         --index-url https://download.pytorch.org/whl/cu128 torch \
-    && python -m pip install --no-cache-dir \
+    && python -m pip install --no-cache-dir --break-system-packages \
         transformers==4.57.1 safetensors>=0.4.0 pillow>=10.0.0 einops>=0.7.0 \
         diffusers>=0.32.0 accelerate>=1.0.0 sentencepiece click hf_transfer runpod
 
