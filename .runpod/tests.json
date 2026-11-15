@@ -23,7 +23,7 @@
     }
   ],
   "config": {
-    "gpuTypeId": "NVIDIA L4",
+    "gpuTypeId": "NVIDIA A40",
     "gpuCount": 1,
     "env": [
       {
@@ -36,11 +36,9 @@
       }
     ],
     "allowedCudaVersions": [
-      "12.8",
-      "12.7",
-      "12.6",
-      "12.5",
-      "12.4"
+      "13.0",
+      "12.9",
+      "12.8"
     ]
   }
 }

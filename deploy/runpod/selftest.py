@@ -18,6 +18,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import sys
 import types
 import urllib.request
@@ -92,6 +93,14 @@ def stubs(width: int, height: int) -> None:
 POOLS = {"AMPERE_16", "AMPERE_24", "ADA_24", "ADA_32_PRO", "AMPERE_48", "ADA_48_PRO",
          "AMPERE_80", "ADA_80_PRO", "BLACKWELL_96", "HOPPER_141", "BLACKWELL_180"}
 
+# Only the pools this listing advertises; a test pod on hardware we do not offer proves nothing.
+POOL_DEVICES = {
+    "AMPERE_24": ("NVIDIA L4", "NVIDIA RTX A5000", "NVIDIA GeForce RTX 3090"),
+    "ADA_24": ("NVIDIA GeForce RTX 4090",),
+    "AMPERE_48": ("NVIDIA A40", "NVIDIA RTX A6000"),
+    "ADA_48_PRO": ("NVIDIA L40", "NVIDIA L40S", "NVIDIA RTX 6000 Ada Generation"),
+}
+
 
 def hub_config() -> None:
     """The Hub's two identifier spaces: an endpoint takes pool IDs, a Pod takes device names.
@@ -119,6 +128,19 @@ def hub_config() -> None:
           True)
     check("both configs ask for one GPU",
           (hub.get("gpuCount"), tests.get("gpuCount")), (1, 1))
+
+    # The test pod must land on hardware the listing actually sells.
+    check("test device belongs to an advertised pool",
+          [dev for pool, devs in POOL_DEVICES.items() if pool in wanted for dev in devs
+           if dev == device], [device])
+
+    # The image's own CUDA floor: `nvidia/cuda:12.8.1-*` declares cuda>=12.8, so any lower
+    # entry in allowedCudaVersions only ever schedules onto a host that then fails prestart.
+    with open(os.path.join(root, "Dockerfile"), encoding="utf-8") as fh:
+        found = re.search(r"FROM\s+nvidia/cuda:(\d+)\.(\d+)", fh.read())
+    floor = float(f"{found.group(1)}.{found.group(2)}") if found else 0.0
+    allowed = [float(v) for v in (tests.get("allowedCudaVersions") or []) if re.match(r"^\d+\.\d+$", v)]
+    check("CUDA list respects the image floor", bool(allowed) and min(allowed) >= floor, True)
 
 
 def offline() -> int:

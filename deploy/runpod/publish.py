@@ -37,13 +37,15 @@ BASE = "https://rest.runpod.io/v1"
 # L4 / A5000 / 3090), and that is all `saveEndpoint` accepts. Device names such as "NVIDIA L4"
 # are a different identifier space and belong only in a Pod request — which is what
 # `.runpod/tests.json` builds, hence the device name there. Order is the rent priority.
-DEFAULT_GPUS = ("AMPERE_24", "ADA_24", "AMPERE_48")
+DEFAULT_GPUS = ("AMPERE_48", "AMPERE_24", "ADA_24")
 
-# RunPod matches allowedCudaVersions exactly, and a version no machine reports is a capacity
-# error, not a fallback. Listing one version ("12.8") is why scheduling fails while the image
-# is fine. The torch wheels are cu128, which run on any CUDA 12.x driver under CUDA's minor
-# version compatibility (>=525.60.13); 12.4+ is the floor this worker is tested against.
-CUDA_VERSIONS = ("12.8", "12.7", "12.6", "12.5", "12.4")
+# RunPod matches allowedCudaVersions exactly against the host driver, so the list has to be
+# both wide enough to find a machine and no wider than this image can actually start on. Wide
+# is fine; wrong is not: `nvidia/cuda:12.8.1-*` declares `NVIDIA_REQUIRE_CUDA=cuda>=12.8`, and
+# a host on an older driver is rejected by the container prestart hook with
+# "unsatisfied condition: cuda>=12.8" — so 12.4-12.7 entries are hosts that can never run us.
+# 12.8 and up are all valid: newer drivers are backward compatible with the cu128 wheels.
+CUDA_VERSIONS = ("13.0", "12.9", "12.8")
 
 # 40 GB of container disk holds the CUDA image and torch; the 12 GB of weights live on the
 # network volume, mounted at the convention the README documents.
