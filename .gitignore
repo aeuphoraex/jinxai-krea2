@@ -36,4 +36,4 @@ http_status.txt
 *.zip
 *.tar
 *.tar.gz
-tools/caddy/
+tools/caddy/*.exe

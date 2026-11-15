@@ -1,0 +1,1749 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "errors": {
+            "routes": [
+              {
+                "handle": [
+                  {
+                    "handler": "subroute",
+                    "routes": [
+                      {
+                        "handle": [
+                          {
+                            "handler": "subroute",
+                            "routes": [
+                              {
+                                "group": "group15",
+                                "handle": [
+                                  {
+                                    "handler": "rewrite",
+                                    "uri": "/404.html"
+                                  }
+                                ],
+                                "match": [
+                                  {
+                                    "expression": "{http.error.status_code} == 404"
+                                  }
+                                ]
+                              },
+                              {
+                                "handle": [
+                                  {
+                                    "handler": "file_server",
+                                    "hide": [
+                                      "D:\\LATENTWEIGHTS\\Caddyfile"
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "match": [
+                  {
+                    "host": [
+                      "dubwarz.club"
+                    ]
+                  }
+                ],
+                "terminal": true
+              }
+            ]
+          },
+          "listen": [
+            ":443"
+          ],
+          "logs": {
+            "default_logger_name": "log1",
+            "logger_names": {
+              "dubwarz.club": [
+                "log4"
+              ],
+              "dubwarz.vip": [
+                "log5"
+              ],
+              "hdc.dubwarz.live": [
+                "log6"
+              ],
+              "jinxai.duckdns.org": [
+                "log3"
+              ],
+              "www.dubwarz.vip": [
+                "log5"
+              ],
+              "xzyorbitz.duckdns.org": [
+                "log2"
+              ]
+            },
+            "skip_hosts": [
+              "aetheric.duckdns.org",
+              "www.dubwarz.club"
+            ]
+          },
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "vars",
+                          "root": "D:/LATENTWEIGHTS/webroot"
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "public, max-age=3600, immutable"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/js/*",
+                            "/style.css",
+                            "/loader.css",
+                            "/vision.css"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "no-cache, no-store, must-revalidate"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/*.html"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "deferred": true,
+                            "delete": [
+                              "Server"
+                            ],
+                            "set": {
+                              "Content-Security-Policy": [
+                                "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+                              ],
+                              "Cross-Origin-Embedder-Policy": [
+                                "require-corp"
+                              ],
+                              "Cross-Origin-Opener-Policy": [
+                                "same-origin"
+                              ],
+                              "Permissions-Policy": [
+                                "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), display-capture=(), fullscreen=(self)"
+                              ],
+                              "Referrer-Policy": [
+                                "strict-origin-when-cross-origin"
+                              ],
+                              "Strict-Transport-Security": [
+                                "max-age=31536000; includeSubDomains; preload"
+                              ],
+                              "X-Content-Type-Options": [
+                                "nosniff"
+                              ],
+                              "X-Frame-Options": [
+                                "SAMEORIGIN"
+                              ],
+                              "X-Xss-Protection": [
+                                "1; mode=block"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Access-Control-Allow-Methods": [
+                                "GET, HEAD, OPTIONS"
+                              ],
+                              "Access-Control-Allow-Origin": [
+                                "https://xzyorbitz.duckdns.org"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "request_body",
+                          "max_size": 1000000
+                        },
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "gzip",
+                            "zstd"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group16",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "vars",
+                                  "root": "F:/XZY-ONE"
+                                },
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/musicbiz/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group16",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "flush_interval": -1,
+                                  "handler": "reverse_proxy",
+                                  "headers": {
+                                    "request": {
+                                      "set": {
+                                        "X-Forwarded-For": [
+                                          "{http.request.remote.host}"
+                                        ],
+                                        "X-Real-Ip": [
+                                          "{http.request.remote.host}"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "upstreams": [
+                                    {
+                                      "dial": "localhost:8765"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group16",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "strip_path_prefix": "/sd"
+                                },
+                                {
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "localhost:7860"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/sd/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group16",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "headers",
+                                  "response": {
+                                    "set": {
+                                      "Access-Control-Allow-Headers": [
+                                        "Range"
+                                      ],
+                                      "Access-Control-Allow-Methods": [
+                                        "GET, HEAD, OPTIONS"
+                                      ],
+                                      "Access-Control-Allow-Origin": [
+                                        "https://xzyorbitz.duckdns.org"
+                                      ],
+                                      "Access-Control-Max-Age": [
+                                        "3600"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "handler": "static_response",
+                                  "status_code": 204
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "OPTIONS"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group16",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "uri": "{http.matchers.file.relative}"
+                                }
+                              ],
+                              "match": [
+                                {
+                                  "file": {
+                                    "try_files": [
+                                      "{http.request.uri.path}",
+                                      "/index.html"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "handle": [
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    ".git",
+                                    ".env",
+                                    ".htaccess",
+                                    ".htpasswd",
+                                    ".svn",
+                                    ".DS_Store",
+                                    "*.meta",
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "xzyorbitz.duckdns.org"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "reverse_proxy",
+                          "upstreams": [
+                            {
+                              "dial": "localhost:7860"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "aetheric.duckdns.org"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "authentication",
+                          "providers": {
+                            "http_basic": {
+                              "accounts": [
+                                {
+                                  "password": "$2a$14$zhC/gcgsITXiBYQxI8kvvOWsS0Xy63KAZp//t71pgmQN1q/a6kzeO",
+                                  "username": "jinxai"
+                                }
+                              ],
+                              "hash": {
+                                "algorithm": "bcrypt"
+                              },
+                              "hash_cache": {}
+                            }
+                          }
+                        },
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "gzip",
+                            "zstd"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "flush_interval": -1,
+                          "handler": "reverse_proxy",
+                          "upstreams": [
+                            {
+                              "dial": "localhost:7788"
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/events"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "X-Forwarded-Proto": [
+                                  "{http.request.scheme}"
+                                ],
+                                "X-Real-Ip": [
+                                  "{http.request.remote.host}"
+                                ]
+                              }
+                            }
+                          },
+                          "upstreams": [
+                            {
+                              "dial": "localhost:7788"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "jinxai.duckdns.org"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Location": [
+                              "https://dubwarz.club{http.request.uri}"
+                            ]
+                          },
+                          "status_code": 308
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "www.dubwarz.club"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "deferred": true,
+                            "delete": [
+                              "Server"
+                            ],
+                            "set": {
+                              "Cache-Control": [
+                                "no-store"
+                              ],
+                              "Referrer-Policy": [
+                                "strict-origin-when-cross-origin"
+                              ],
+                              "Strict-Transport-Security": [
+                                "max-age=31536000"
+                              ],
+                              "X-Content-Type-Options": [
+                                "nosniff"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "request_body",
+                          "max_size": 64000000
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Location": [
+                              "/"
+                            ]
+                          },
+                          "status_code": 301
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/basic.html",
+                            "/index.html",
+                            "/loader.html"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "flush_interval": -1,
+                          "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "X-Forwarded-Proto": [
+                                  "{http.request.scheme}"
+                                ],
+                                "X-Real-Ip": [
+                                  "{http.request.remote.host}"
+                                ]
+                              }
+                            },
+                            "response": {
+                              "set": {
+                                "Cache-Control": [
+                                  "no-store"
+                                ]
+                              }
+                            }
+                          },
+                          "upstreams": [
+                            {
+                              "dial": "127.0.0.1:8766"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "hdc.dubwarz.live"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "headers",
+                  "response": {
+                    "deferred": true,
+                    "delete": [
+                      "Server"
+                    ],
+                    "set": {
+                      "Referrer-Policy": [
+                        "strict-origin-when-cross-origin"
+                      ],
+                      "Strict-Transport-Security": [
+                        "max-age=31536000"
+                      ],
+                      "X-Content-Type-Options": [
+                        "nosniff"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "handler": "request_body",
+                  "max_size": 64000000
+                },
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "match": [
+                        {
+                          "path": [
+                            "/aigf/api/*"
+                          ]
+                        }
+                      ],
+                      "terminal": true,
+                      "handle": [
+                        {
+                          "handler": "rewrite",
+                          "strip_path_prefix": "/aigf"
+                        },
+                        {
+                          "handler": "reverse_proxy",
+                          "flush_interval": -1,
+                          "upstreams": [
+                            {
+                              "dial": "xzyorb--orbital.us-east.modal.run:443"
+                            }
+                          ],
+                          "transport": {
+                            "protocol": "http",
+                            "tls": {}
+                          },
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "Host": [
+                                  "xzyorb--orbital.us-east.modal.run"
+                                ],
+                                "X-Orbital-Prefix": [
+                                  "/aigf"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "match": [
+                        {
+                          "path": [
+                            "/aigf",
+                            "/aigf/",
+                            "/aigf/*"
+                          ]
+                        }
+                      ],
+                      "terminal": true,
+                      "handle": [
+                        {
+                          "handler": "reverse_proxy",
+                          "flush_interval": -1,
+                          "upstreams": [
+                            {
+                              "dial": "xzyorb--orbital.us-east.modal.run:443"
+                            }
+                          ],
+                          "transport": {
+                            "protocol": "http",
+                            "tls": {}
+                          },
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "Host": [
+                                  "xzyorb--orbital.us-east.modal.run"
+                                ],
+                                "X-Orbital-Prefix": [
+                                  "/aigf"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "reverse_proxy",
+                          "flush_interval": -1,
+                          "upstreams": [
+                            {
+                              "dial": "127.0.0.1:8792"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "dubwarz.vip",
+                    "www.dubwarz.vip"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "vars",
+                          "root": "G:/DUBWARZ/DUBWARZ/web"
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "public, max-age=31536000, immutable"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/assets/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "no-cache"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/",
+                            "*.html"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "deferred": true,
+                            "delete": [
+                              "Server"
+                            ],
+                            "set": {
+                              "Permissions-Policy": [
+                                "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+                              ],
+                              "Referrer-Policy": [
+                                "strict-origin-when-cross-origin"
+                              ],
+                              "Strict-Transport-Security": [
+                                "max-age=31536000"
+                              ],
+                              "X-Content-Type-Options": [
+                                "nosniff"
+                              ],
+                              "X-Frame-Options": [
+                                "SAMEORIGIN"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group23",
+                      "handle": [
+                        {
+                          "handler": "rewrite",
+                          "uri": "/enter.html"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/enter/"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group23",
+                      "handle": [
+                        {
+                          "handler": "rewrite",
+                          "uri": "/enter.html"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/enter"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "rewrite",
+                          "uri": "{http.matchers.file.relative}"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "file": {
+                            "try_files": [
+                              "{http.request.uri.path}",
+                              "{http.request.uri.path}/"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "zstd",
+                            "gzip"
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "not": [
+                            {
+                              "path": [
+                                "/mcp",
+                                "/mcp/*"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "flush_interval": -1,
+                          "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "X-Bridge-Proxy": [
+                                  "caddy"
+                                ]
+                              }
+                            }
+                          },
+                          "transport": {
+                            "dial_timeout": 5000000000,
+                            "protocol": "http"
+                          },
+                          "upstreams": [
+                            {
+                              "dial": "127.0.0.1:8787"
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/mcp",
+                            "/mcp/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "file_server",
+                          "hide": [
+                            ".git",
+                            ".env",
+                            ".htaccess",
+                            "D:\\LATENTWEIGHTS\\Caddyfile"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "dubwarz.club"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "vars",
+                          "root": "D:/LATENTWEIGHTS/webroot"
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "public, max-age=3600, immutable"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/js/*",
+                            "/style.css",
+                            "/loader.css",
+                            "/vision.css"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Cache-Control": [
+                                "no-cache, no-store, must-revalidate"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/*.html"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "deferred": true,
+                            "delete": [
+                              "Server"
+                            ],
+                            "set": {
+                              "Content-Security-Policy": [
+                                "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+                              ],
+                              "Cross-Origin-Embedder-Policy": [
+                                "require-corp"
+                              ],
+                              "Cross-Origin-Opener-Policy": [
+                                "same-origin"
+                              ],
+                              "Permissions-Policy": [
+                                "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), display-capture=(), fullscreen=(self)"
+                              ],
+                              "Referrer-Policy": [
+                                "strict-origin-when-cross-origin"
+                              ],
+                              "Strict-Transport-Security": [
+                                "max-age=31536000; includeSubDomains; preload"
+                              ],
+                              "X-Content-Type-Options": [
+                                "nosniff"
+                              ],
+                              "X-Frame-Options": [
+                                "SAMEORIGIN"
+                              ],
+                              "X-Xss-Protection": [
+                                "1; mode=block"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Access-Control-Allow-Methods": [
+                                "GET, HEAD, OPTIONS"
+                              ],
+                              "Access-Control-Allow-Origin": [
+                                "{http.request.scheme}://{http.request.host}"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "request_body",
+                          "max_size": 1000000
+                        },
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "gzip",
+                            "zstd"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "body": "Forbidden",
+                                  "handler": "static_response",
+                                  "status_code": 403
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/memory/reset"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "vars",
+                                  "root": "F:/XZY-ONE"
+                                },
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/musicbiz/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "flush_interval": -1,
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "localhost:8765"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "strip_path_prefix": "/sd"
+                                },
+                                {
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "localhost:7860"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/sd/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "headers",
+                                  "response": {
+                                    "set": {
+                                      "Access-Control-Allow-Headers": [
+                                        "Range"
+                                      ],
+                                      "Access-Control-Allow-Methods": [
+                                        "GET, HEAD, OPTIONS"
+                                      ],
+                                      "Access-Control-Allow-Origin": [
+                                        "{http.request.scheme}://{http.request.host}"
+                                      ],
+                                      "Access-Control-Max-Age": [
+                                        "3600"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "handler": "static_response",
+                                  "status_code": 204
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "OPTIONS"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group24",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "uri": "{http.matchers.file.relative}"
+                                }
+                              ],
+                              "match": [
+                                {
+                                  "file": {
+                                    "try_files": [
+                                      "{http.request.uri.path}",
+                                      "/index.html"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "handle": [
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    ".git",
+                                    ".env",
+                                    ".htaccess",
+                                    ".htpasswd",
+                                    ".svn",
+                                    ".DS_Store",
+                                    "*.meta",
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        },
+        "srv1": {
+          "listen": [
+            ":80"
+          ],
+          "logs": {
+            "default_logger_name": "log0",
+            "skip_hosts": [
+              "107.179.232.160"
+            ]
+          },
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Location": [
+                              "https://dubwarz.club{http.request.uri}"
+                            ]
+                          },
+                          "status_code": 308
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "107.179.232.160"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "vars",
+                          "root": "F:/XZY-ONE"
+                        },
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "deferred": true,
+                            "delete": [
+                              "Server"
+                            ]
+                          }
+                        },
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "gzip",
+                            "zstd"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group27",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "static_response",
+                                  "headers": {
+                                    "Location": [
+                                      "/"
+                                    ]
+                                  },
+                                  "status_code": 301
+                                }
+                              ],
+                              "match": [
+                                {
+                                  "path": [
+                                    "/index.html"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/index.html"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group27",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "vars",
+                                  "root": "F:/XZY-ONE"
+                                },
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/musicbiz/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group27",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "strip_path_prefix": "/sd"
+                                },
+                                {
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "localhost:7860"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/sd/*"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group27",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "rewrite",
+                                  "uri": "{http.matchers.file.relative}"
+                                }
+                              ],
+                              "match": [
+                                {
+                                  "file": {
+                                    "try_files": [
+                                      "{http.request.uri.path}",
+                                      "/index.html"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "handle": [
+                                {
+                                  "handler": "file_server",
+                                  "hide": [
+                                    ".git",
+                                    ".env",
+                                    ".htaccess",
+                                    ".htpasswd",
+                                    ".svn",
+                                    ".DS_Store",
+                                    "*.meta",
+                                    "D:\\LATENTWEIGHTS\\Caddyfile"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        },
+        "srv2": {
+          "listen": [
+            ":8081"
+          ],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "headers": {
+                    "Location": [
+                      "https://dubwarz.club/enter"
+                    ]
+                  },
+                  "status_code": 308
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "tls": {
+      "automation": {
+        "policies": [
+          {
+            "issuers": [
+              {
+                "module": "internal"
+              }
+            ],
+            "subjects": [
+              "aetheric.duckdns.org"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "logging": {
+    "logs": {
+      "default": {
+        "exclude": [
+          "http.log.access.log0",
+          "http.log.access.log1",
+          "http.log.access.log2",
+          "http.log.access.log3",
+          "http.log.access.log4",
+          "http.log.access.log5",
+          "http.log.access.log6"
+        ]
+      },
+      "log0": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log0"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log1": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log1"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log2": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log2"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log3": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log3"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log4": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log4"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log5": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log5"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      },
+      "log6": {
+        "encoder": {
+          "format": "console"
+        },
+        "include": [
+          "http.log.access.log6"
+        ],
+        "level": "INFO",
+        "writer": {
+          "output": "stdout"
+        }
+      }
+    }
+  },
+  "admin": {
+    "listen": "127.0.0.1:2019"
+  }
+}
