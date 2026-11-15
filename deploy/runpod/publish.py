@@ -34,6 +34,12 @@ BASE = "https://rest.runpod.io/v1"
 # the H100 it is meant to replace.
 DEFAULT_GPUS = ("NVIDIA L4", "NVIDIA A5000", "NVIDIA A40")
 
+# RunPod matches allowedCudaVersions exactly, and a version no machine reports is a capacity
+# error, not a fallback. Listing one version ("12.8") is why scheduling fails while the image
+# is fine. The torch wheels are cu128, which run on any CUDA 12.x driver under CUDA's minor
+# version compatibility (>=525.60.13); 12.4+ is the floor this worker is tested against.
+CUDA_VERSIONS = ("12.8", "12.7", "12.6", "12.5", "12.4")
+
 # 40 GB of container disk holds the CUDA image and torch; the 12 GB of weights live on the
 # network volume, mounted at the convention the README documents.
 CONTAINER_DISK_GB = 40
@@ -82,7 +88,7 @@ def endpoint_payload(name: str, template_id: str, gpus, workers_max: int,
         "templateId": template_id,
         "gpuTypeIds": list(gpus),
         "gpuCount": 1,
-        "allowedCudaVersions": ["12.8"],
+        "allowedCudaVersions": list(CUDA_VERSIONS),
         "workersMin": 0,
         "workersMax": max(1, int(workers_max)),
         "idleTimeout": 5,

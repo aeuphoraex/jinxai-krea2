@@ -7,8 +7,14 @@
     "runsOn": "GPU",
     "containerDiskInGb": 60,
     "gpuCount": 1,
-    "gpuIds": "ADA_24,AMPERE_80",
-    "allowedCudaVersions": ["12.8"],
+    "gpuIds": "AMPERE_24,ADA_24,AMPERE_48,ADA_48_PRO",
+    "allowedCudaVersions": [
+      "12.8",
+      "12.7",
+      "12.6",
+      "12.5",
+      "12.4"
+    ],
     "env": [
       {
         "key": "OSS_TURBO",
