@@ -1,11 +1,11 @@
 {
   "title": "Krea 2 Turbo (public line)",
-  "description": "8-step distilled Krea 2 Turbo text-to-image worker: one prompt in, one 1K PNG out. The schedule is pinned at 8 steps / CFG 0, the prompt expander is not used, and the age rule runs before any GPU work.",
+  "description": "8-step distilled Krea 2 Turbo text-to-image worker: one prompt in, one 1K PNG out. The schedule is pinned at 8 steps / CFG 0, and the age rule runs before any GPU work.",
   "type": "serverless",
   "category": "image",
   "config": {
     "runsOn": "GPU",
-    "containerDiskInGb": 40,
+    "containerDiskInGb": 60,
     "gpuCount": 1,
     "gpuIds": "ADA_24,AMPERE_80",
     "allowedCudaVersions": ["12.8"],
@@ -13,10 +13,10 @@
       {
         "key": "OSS_TURBO",
         "input": {
-          "name": "Checkpoint path",
+          "name": "Checkpoint",
           "type": "string",
-          "description": "Path to the Krea 2 Turbo DiT inside the worker. An fp8_scaled safetensors file is dequantised to bf16 once, beside the source, on the worker's first load.",
-          "default": "/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors",
+          "description": "Either a Hugging Face repo id such as krea/Krea-2-Turbo (downloaded and cached on first load) or a path to a .safetensors file already on the worker. A repo id with several checkpoints must name the file as org/name::file.safetensors.",
+          "default": "krea/Krea-2-Turbo",
           "required": true
         }
       },
@@ -25,7 +25,7 @@
         "input": {
           "name": "Hugging Face cache",
           "type": "string",
-          "description": "Where the Qwen3-VL encoder and the Qwen-Image VAE are cached after their first download. Point it at the same volume as the checkpoint so a warm worker is not paying for them again.",
+          "description": "Where the checkpoint, the Qwen3-VL encoder and the Qwen-Image VAE are cached after the first download. Point it at a network volume to avoid paying for them on every cold worker.",
           "default": "/runpod-volume/hf",
           "advanced": true
         }

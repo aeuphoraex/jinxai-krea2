@@ -20,6 +20,7 @@ injectable so the arithmetic can be checked without a GPU or the real libraries.
 from __future__ import annotations
 
 import os
+import re
 
 SUFFIX = ".bf16.safetensors"
 # A materialized file is ~12 GB; anything smaller is a half-written artifact from a killed
@@ -40,6 +41,71 @@ def target_for(path: str) -> str:
     if path.endswith(".safetensors"):
         return path[: -len(".safetensors")] + SUFFIX
     return path + SUFFIX
+
+
+# --- where the checkpoint comes from -------------------------------------------------------
+#
+# A worker either finds the DiT on disk (`OSS_TURBO=/runpod-volume/weights/...`) or fetches it
+# from the Hub. The second form is what makes a RunPod Hub listing testable: a reviewer's worker
+# is built fresh, with no network volume attached, so a path alone fails at load. Two spellings
+# are accepted — a bare repo id (`org/name`) and a repo id plus filename
+# (`org/name::file.safetensors`). Anything ending in `.safetensors`, absolute, drive-qualified or
+# dot-relative stays a filesystem path, so volume deployments and the offline tests are untouched.
+
+_REMOTE_ID = re.compile(r"^[\w.\-]+/[\w.\-]+$")
+
+
+def split_remote(source: str) -> tuple:
+    """`org/name::file.safetensors` -> (repo, filename); filename is "" when not given."""
+    repo, _, filename = str(source or "").partition("::")
+    return repo.strip(), filename.strip()
+
+
+def looks_remote(source: str) -> bool:
+    """True for a Hugging Face repo id, False for anything meant as a local path."""
+    src = str(source or "").strip()
+    if not src:
+        return False
+    if "::" in src:
+        return True
+    if src.endswith(".safetensors") or "\\" in src:
+        return False
+    if src.startswith(("/", "~", ".")) or re.match(r"^[A-Za-z]:", src):
+        return False
+    return bool(_REMOTE_ID.match(src))
+
+
+def fetch(source: str, cache_dir: str = "", hf=None, log=print) -> str:
+    """Download a checkpoint from the Hub and return its local path.
+
+    `hf` is injectable as a `(HfApi, hf_hub_download)` pair so the selection logic can be checked
+    without a network. A repo with more than one safetensors file must name the file: guessing
+    between them would silently render with the Raw weights instead of Turbo.
+    """
+    repo, filename = split_remote(source)
+    if not repo:
+        raise RuntimeError(f"not a Hugging Face repo id: {source!r}")
+    if hf is None:
+        from huggingface_hub import HfApi, hf_hub_download  # type: ignore
+
+        hf = (HfApi, hf_hub_download)
+    api_cls, download = hf
+    if not filename:
+        candidates = [f for f in api_cls().list_repo_files(repo) if f.endswith(".safetensors")]
+        if not candidates:
+            raise RuntimeError(f"{repo} publishes no .safetensors file")
+        if len(candidates) > 1:
+            raise RuntimeError(
+                f"{repo} holds several checkpoints ({', '.join(sorted(candidates))}); "
+                f"name one as {repo}::<file>.safetensors"
+            )
+        filename = candidates[0]
+    log(f"[checkpoint] fetching {repo}/{filename}")
+    return download(
+        repo_id=repo,
+        filename=filename,
+        cache_dir=cache_dir or os.environ.get("HF_HOME") or None,
+    )
 
 
 def dequant(state: dict, torch_mod) -> dict:
@@ -64,7 +130,9 @@ def materialize(path: str, load=None, save=None, torch_mod=None, log=print) -> s
     """
     src = str(path or "").strip()
     if not src:
-        raise RuntimeError("OSS_TURBO is not set to a checkpoint path")
+        raise RuntimeError("OSS_TURBO is not set to a checkpoint path or a Hugging Face repo id")
+    if looks_remote(src):
+        src = fetch(src, log=log)
     if src.endswith(SUFFIX):
         # An already-materialized name is trusted: that is what the volume holds, and
         # re-deriving it would cost a 12 GB rewrite on every cold worker.

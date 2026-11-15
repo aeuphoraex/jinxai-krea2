@@ -136,6 +136,47 @@ def offline() -> int:
     check("materialized name trusted", C.materialize("w/x.bf16.safetensors"),
           "w/x.bf16.safetensors")
 
+    print("\nthe checkpoint can come from the Hub, not only from a volume")
+    check("bare repo id is remote", C.looks_remote("krea/Krea-2-Turbo"), True)
+    check("repo id with a filename is remote",
+          C.looks_remote("krea/Krea-2-Turbo::turbo.safetensors"), True)
+    check("a volume path stays a path",
+          C.looks_remote("/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors"), False)
+    check("a bare filename stays a path", C.looks_remote("krea2_turbo_fp8_scaled.safetensors"), False)
+    check("split_remote separates repo and file",
+          C.split_remote("krea/Krea-2-Turbo::turbo.safetensors"),
+          ("krea/Krea-2-Turbo", "turbo.safetensors"))
+
+    seen: dict = {}
+
+    class FakeApi:
+        def __init__(self, files=("README.md", "turbo.safetensors")):
+            self.files = list(files)
+
+        def list_repo_files(self, repo):
+            seen["listed"] = repo
+            return self.files
+
+    def fake_download(repo_id, filename, cache_dir=None):
+        seen.update(repo=repo_id, file=filename, cache=cache_dir)
+        return "/cache/" + filename
+
+    check("fetch picks the only safetensors",
+          C.fetch("krea/Krea-2-Turbo", hf=(FakeApi, fake_download), log=lambda *_: None),
+          "/cache/turbo.safetensors")
+    check("fetch passes repo and file through", (seen.get("repo"), seen.get("file")),
+          ("krea/Krea-2-Turbo", "turbo.safetensors"))
+    check("fetch honours a :: filename",
+          C.fetch("krea/A::b.safetensors", hf=(FakeApi, fake_download), log=lambda *_: None),
+          "/cache/b.safetensors")
+    try:
+        C.fetch("krea/Two", hf=(lambda: FakeApi(("a.safetensors", "b.safetensors")), fake_download),
+                log=lambda *_: None)
+        ambiguous = "no error"
+    except RuntimeError as err:
+        ambiguous = "ambiguous" if "name one as" in str(err) else str(err)
+    check("fetch refuses to guess between two checkpoints", ambiguous, "ambiguous")
+
     print("\nthe handler answers in the deployment's shape")
     os.environ["OSS_TURBO"] = os.path.join(HERE, "fake.bf16.safetensors")
     stubs(1280, 1600)

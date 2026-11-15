@@ -1,7 +1,7 @@
 {
   "tests": [
     {
-      "name": "one 1024 frame",
+      "name": "one 1024 frame from the Hub checkpoint",
       "input": {
         "input": {
           "prompt": "a portrait by a window, 35mm, soft light",
@@ -10,7 +10,7 @@
           "seed": 7
         }
       },
-      "timeout": 900000
+      "timeout": 1200000
     },
     {
       "name": "refusal costs no GPU time",
@@ -28,11 +28,11 @@
     "env": [
       {
         "key": "OSS_TURBO",
-        "value": "/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors"
+        "value": "krea/Krea-2-Turbo"
       },
       {
         "key": "HF_HOME",
-        "value": "/runpod-volume/hf"
+        "value": "/tmp/hf"
       }
     ],
     "allowedCudaVersions": ["12.8"]
