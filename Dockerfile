@@ -1,9 +1,9 @@
 # RunPod Serverless build entrypoint for the PUBLIC Krea 2 worker.
 #
-# This file exists at the repo root because a GitHub-connected RunPod build looks for
-# `Dockerfile` there. It is intentionally identical to `deploy/runpod/Dockerfile`, which is
-# what `deploy/runpod/publish.py` builds locally — keep the two in sync, and prefer this one
-# when changing dependencies so the CI image and the local image cannot drift.
+# This file exists at the repo root because a GitHub-connected RunPod build, and the RunPod
+# Hub, look for `Dockerfile` there. It is intentionally identical to `deploy/runpod/Dockerfile`,
+# which is what `deploy/runpod/publish.py` builds locally — keep the two in sync, and prefer
+# this one when changing dependencies so the CI image and the local image cannot drift.
 #
 # The studio deck (uncensored merge, abliterated encoder, adapters, 4K, Wan video) is NOT in
 # this image. This is the stock-core public line only.
@@ -13,21 +13,24 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
-    PYTHONPATH=/opt:/opt/krea2
+    PYTHONPATH=/opt:/opt/krea2 \
+    PATH=/opt/venv/bin:$PATH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.12 python3.12-venv python3.12-dev python3-pip git ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* && ln -sf /usr/bin/python3.12 /usr/local/bin/python
 
-# `click` is imported at the top of krea2/inference.py; without it the worker dies at import
-# and the failure looks like a crashed container rather than a missing dependency.
-# Ubuntu 24.04's system Python is PEP 668 "externally managed": pip refuses to write to it
-# without this flag, which is how the first CI build failed (exit 1, before any download).
-# In a container nothing else owns these packages, so the exemption is the accurate one.
-RUN python -m pip install --no-cache-dir --break-system-packages --upgrade pip \
-    && python -m pip install --no-cache-dir --break-system-packages \
-        --index-url https://download.pytorch.org/whl/cu128 torch \
-    && python -m pip install --no-cache-dir --break-system-packages \
+# A venv, not --break-system-packages. Ubuntu 24.04 marks its Python as PEP 668 externally
+# managed, and its pip 24.0 came from dpkg with no RECORD file, so even `pip install --upgrade
+# pip` dies with "Cannot uninstall pip 24.0". Both problems vanish inside a venv, whose pip owns
+# its own RECORD. torchvision comes from the same cu128 index because transformers'
+# AutoProcessor reaches for it while building the Qwen3-VL processor: without it the first job
+# dies at AutoVideoProcessor rather than at build time, which is a much worse place to find out.
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/python -m pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cu128 torch torchvision \
+    && /opt/venv/bin/python -m pip install --no-cache-dir \
         transformers==4.57.1 safetensors>=0.4.0 pillow>=10.0.0 einops>=0.7.0 \
         diffusers>=0.32.0 accelerate>=1.0.0 sentencepiece click hf_transfer runpod
 
@@ -38,4 +41,4 @@ COPY deploy/runpod/checkpoint.py /opt/checkpoint.py
 COPY handler.py /opt/handler.py
 
 WORKDIR /opt
-CMD ["python", "-u", "/opt/handler.py"]
+CMD ["/opt/venv/bin/python", "-u", "/opt/handler.py"]
