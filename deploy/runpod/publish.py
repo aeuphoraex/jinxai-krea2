@@ -32,7 +32,12 @@ BASE = "https://rest.runpod.io/v1"
 # 24 GB is the measured floor for stock Krea 2 fp8: 12.3 GB DiT + 4.9 GB encoder + VAE. H100
 # is deliberately absent — this host draws commodity frames, and an H100 there costs more than
 # the H100 it is meant to replace.
-DEFAULT_GPUS = ("NVIDIA L4", "NVIDIA A5000", "NVIDIA A40")
+#
+# Pool IDs, not device names: a serverless endpoint selects hardware by pool ("AMPERE_24" =
+# L4 / A5000 / 3090), and that is all `saveEndpoint` accepts. Device names such as "NVIDIA L4"
+# are a different identifier space and belong only in a Pod request — which is what
+# `.runpod/tests.json` builds, hence the device name there. Order is the rent priority.
+DEFAULT_GPUS = ("AMPERE_24", "ADA_24", "AMPERE_48")
 
 # RunPod matches allowedCudaVersions exactly, and a version no machine reports is a capacity
 # error, not a fallback. Listing one version ("12.8") is why scheduling fails while the image

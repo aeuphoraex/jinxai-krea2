@@ -89,8 +89,42 @@ def stubs(width: int, height: int) -> None:
     sys.modules["sampling"] = sampling
 
 
+POOLS = {"AMPERE_16", "AMPERE_24", "ADA_24", "ADA_32_PRO", "AMPERE_48", "ADA_48_PRO",
+         "AMPERE_80", "ADA_80_PRO", "BLACKWELL_96", "HOPPER_141", "BLACKWELL_180"}
+
+
+def hub_config() -> None:
+    """The Hub's two identifier spaces: an endpoint takes pool IDs, a Pod takes device names.
+
+    Mixing them fails at scheduling time with a message about the other file, so it is checked
+    offline here rather than discovered in a Hub build log.
+    """
+    root = os.path.dirname(os.path.dirname(HERE))
+
+    def read(name):
+        with open(os.path.join(root, ".runpod", name), encoding="utf-8") as fh:
+            return json.load(fh)["config"]
+
+    hub, tests = read("hub.json"), read("tests.json")
+    print("the Hub configs name the right kind of GPU")
+    wanted = [p.strip() for p in str(hub.get("gpuIds") or "").split(",") if p.strip()]
+    check("hub.json gpuIds are pool IDs", [p for p in wanted if p not in POOLS], [])
+    device = str(tests.get("gpuTypeId") or "")
+    check("tests.json gpuTypeId is not a pool ID", device.upper() in POOLS, False)
+    check("tests.json gpuTypeId names a device", device.startswith("NVIDIA "), True)
+    check("several CUDA versions are allowed",
+          len(tests.get("allowedCudaVersions") or []) >= 3, True)
+    check("hub.json agrees on the CUDA list",
+          sorted(hub.get("allowedCudaVersions") or []) == sorted(tests.get("allowedCudaVersions") or []),
+          True)
+    check("both configs ask for one GPU",
+          (hub.get("gpuCount"), tests.get("gpuCount")), (1, 1))
+
+
 def offline() -> int:
     import checkpoint as C
+
+    hub_config()
 
     print("checkpoint naming")
     check("safetensors -> .bf16", C.target_for("w/krea2_fp8_scaled.safetensors"),
