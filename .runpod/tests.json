@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "one 1024 frame",
+      "input": {
+        "input": {
+          "prompt": "a portrait by a window, 35mm, soft light",
+          "width": 1024,
+          "height": 1024,
+          "seed": 7
+        }
+      },
+      "timeout": 900000
+    },
+    {
+      "name": "refusal costs no GPU time",
+      "input": {
+        "input": {
+          "prompt": "a schoolgirl at the gate"
+        }
+      },
+      "timeout": 120000
+    }
+  ],
+  "config": {
+    "gpuTypeId": "NVIDIA GeForce RTX 4090",
+    "gpuCount": 1,
+    "env": [
+      {
+        "key": "OSS_TURBO",
+        "value": "/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors"
+      },
+      {
+        "key": "HF_HOME",
+        "value": "/runpod-volume/hf"
+      }
+    ],
+    "allowedCudaVersions": ["12.8"]
+  }
+}

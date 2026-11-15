@@ -1,0 +1,35 @@
+{
+  "title": "Krea 2 Turbo (public line)",
+  "description": "8-step distilled Krea 2 Turbo text-to-image worker: one prompt in, one 1K PNG out. The schedule is pinned at 8 steps / CFG 0, the prompt expander is not used, and the age rule runs before any GPU work.",
+  "type": "serverless",
+  "category": "image",
+  "config": {
+    "runsOn": "GPU",
+    "containerDiskInGb": 40,
+    "gpuCount": 1,
+    "gpuIds": "ADA_24,AMPERE_80",
+    "allowedCudaVersions": ["12.8"],
+    "env": [
+      {
+        "key": "OSS_TURBO",
+        "input": {
+          "name": "Checkpoint path",
+          "type": "string",
+          "description": "Path to the Krea 2 Turbo DiT inside the worker. An fp8_scaled safetensors file is dequantised to bf16 once, beside the source, on the worker's first load.",
+          "default": "/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors",
+          "required": true
+        }
+      },
+      {
+        "key": "HF_HOME",
+        "input": {
+          "name": "Hugging Face cache",
+          "type": "string",
+          "description": "Where the Qwen3-VL encoder and the Qwen-Image VAE are cached after their first download. Point it at the same volume as the checkpoint so a warm worker is not paying for them again.",
+          "default": "/runpod-volume/hf",
+          "advanced": true
+        }
+      }
+    ]
+  }
+}

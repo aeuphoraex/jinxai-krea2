@@ -1,7 +1,12 @@
 # Krea 2 Turbo · uncensored · on Modal
 
+[![Runpod](https://api.runpod.io/badge/aeuphoraex/jinxai-krea2)](https://console.runpod.io/hub/listing/aeuphoraex/jinxai-krea2)
+
 A self-hosted, unfiltered Krea 2 Turbo image generator running on Modal GPUs, with a
 browser UI and a JSON API.
+
+The badge deploys the **public line** from the RunPod Hub — stock core, no adapters, one
+frame per job (`handler.py` at the root). The studio deck below stays on Modal.
 
 | piece | what it is |
 | --- | --- |
