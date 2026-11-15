@@ -88,3 +88,43 @@ Then confirm the worker answers — one job, one GPU-second:
 python deploy/runpod/selftest.py --live --endpoint <id>
 ```
 
+## Which files actually go on the network volume
+
+Only the DiT is a file path the worker opens. `krea2.inference._pipeline` builds the
+autoencoder and the Qwen3-VL conditioner from Hugging Face ids, and `transformers` caches them
+into `HF_HOME` on first load:
+
+```text
+/runpod-volume/weights/krea2_turbo_fp8_scaled.safetensors   # required, read via OSS_TURBO
+/runpod-volume/hf/                                          # encoder + VAE land here on first boot
+```
+
+The fp8 DiT is the right file to upload: `checkpoint.py` dequantises it to bf16 once, beside
+the source, because `_pipeline` loads with `strict=True` and the fp8 file carries per-tensor
+`_scale` entries that a strict load rejects. Pre-seeding `HF_HOME` with the encoder and VAE is
+optional and only saves the first worker's download.
+
+## Add the repo to RunPod Serverless
+
+The repository is a complete build context: the root `Dockerfile` is the worker and
+`deploy/runpod/handler.py` is its entrypoint.
+
+**Route 1 — image (works today, no console integration).** Push to `main`; the
+`runpod-image` workflow publishes `ghcr.io/<owner>/<repo>:latest`. Make that package public
+(Packages → the package → Settings → Change visibility), then:
+
+```bash
+python deploy/runpod/publish.py --skip-build   --image ghcr.io/<owner>/<repo>:latest --volume-id <volume-id> --apply
+```
+
+**Route 2 — repository source.** If the console offers a GitHub source for a serverless build,
+connect this repository (installing the RunPod GitHub app, since it is private), point the build
+at `/Dockerfile`, then attach the network volume and set `OSS_TURBO` + `HF_HOME` in the template
+environment. This is the same image Route 1 produces, built by RunPod instead of Actions.
+
+Either route ends at the same endpoint. Confirm it with one job:
+
+```bash
+python deploy/runpod/selftest.py --live --endpoint <id>
+```
+
