@@ -41,7 +41,7 @@ call the API below.
 
 This repository is also the source for the **public** RunPod worker: stock Krea 2 Turbo, no
 uncensored merge, no abliterated encoder, no adapters. It is built from the root `Dockerfile`
-and served by `deploy/runpod/handler.py`, which answers in the same shape this app returns, so
+and served by `handler.py`, which answers in the same shape this app returns, so
 `orbit_engine` can route an order to whichever host is cheaper without a branch.
 
 ```text

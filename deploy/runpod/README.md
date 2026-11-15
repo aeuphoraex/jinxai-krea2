@@ -107,7 +107,7 @@ optional and only saves the first worker's download.
 ## Add the repo to RunPod Serverless
 
 The repository is a complete build context: the root `Dockerfile` is the worker and
-`deploy/runpod/handler.py` is its entrypoint.
+`handler.py` is its entrypoint.
 
 **Route 1 — image (works today, no console integration).** Push to `main`; the
 `runpod-image` workflow publishes `ghcr.io/<owner>/<repo>:latest`. Make that package public

@@ -1,7 +1,7 @@
 """Velvet Studio — the Hugging Face Space.
 
 The Space is the front desk, not the engine: it renders nothing itself and holds no weights.
-It submits one job to the **RunPod public worker** (`deploy/runpod/handler.py`), which runs the
+It submits one job to the **RunPod public worker** (`handler.py`), which runs the
 stock Krea 2 Turbo core with no adapters and no unfiltered merge, and shows the frame that
 comes back.
 

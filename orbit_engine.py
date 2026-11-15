@@ -447,7 +447,7 @@ class ComfyUI:
 class RunPod:
     """RunPod serverless: `/run` a job, poll `/status`, read base64 out of `output`.
 
-    The worker (`deploy/runpod/handler.py`) returns `{"images": [{"data": "<b64>"}]}`, the same
+    The worker (`handler.py`) returns `{"images": [{"data": "<b64>"}]}`, the same
     shape this deployment's `generate` returns, so the order record does not care who drew it.
     """
 

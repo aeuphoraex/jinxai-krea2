@@ -1,0 +1,12 @@
+# The worker's Python dependencies. The image installs the same set (see Dockerfile);
+# torch is deliberately absent here because it comes from the CUDA 12.8 wheel index.
+runpod
+transformers==4.57.1
+safetensors>=0.4.0
+pillow>=10.0.0
+einops>=0.7.0
+diffusers>=0.32.0
+accelerate>=1.0.0
+sentencepiece
+click
+hf_transfer

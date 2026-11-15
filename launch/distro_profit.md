@@ -38,7 +38,7 @@ storefronts       → HF Space (SFW), RunningHub app (SFW), dubwarz.vip (both)
 and that route hard-sets `variant=uncensored`, `encoder=abliterated` and `want_lora=True`
 (`AGENTS.md`, locked contract) — a public HF front desk in front of the *unfiltered* deck, always
 wearing the house `bimbo`/`breastshape` pair. The Space now submits directly to the RunPod
-public worker (`deploy/runpod/handler.py`): stock core, no adapters, `orbit_guard`'s age rule
+public worker (`handler.py`): stock core, no adapters, `orbit_guard`'s age rule
 enforced before any GPU work. No Space traffic reaches the studio deck.
 
 ---
@@ -285,7 +285,7 @@ host that would render at a loss (`ENGINE_MIN_MARGIN_BPS`, default 55%).
 
 | # | Host | Enable with | Then verify | Blocks |
 |---|---|---|---|---|
-| 1 | RunPod | `RUNPOD_API_KEY`, `RUNPOD_ENDPOINT_ID` | one order, `GET /api/engine` shows it enabled and cheaper | `deploy/runpod/handler.py` exists; no adapter/video support |
+| 1 | RunPod | `RUNPOD_API_KEY`, `RUNPOD_ENDPOINT_ID` | one order, `GET /api/engine` shows it enabled and cheaper | `handler.py` exists; no adapter/video support |
 | 2 | RunningHub | `RUNNINGHUB_API_KEY`, `RUNNINGHUB_WORKFLOW_ID` | `submit.py` prints a PNG, then a paid order | node ids must come from **your** export, not `comfy/_ref` |
 | 3 | HF Space | `RUNPOD_ENDPOINT_ID` + `RUNPOD_API_KEY` as Space secrets | Space renders a frame on the public worker | **code done** — needs an HF write token to publish |
 | 4 | MimicPC | `MIMICPC_COMFY_URL` + `COMFY_WORKFLOW` (tunnel) | `system_stats` answers, batch renders, **stop the app** | no auth on ComfyUI; hourly meter |
