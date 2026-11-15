@@ -1,0 +1,39 @@
+# Nothing generated, rented or secret belongs in git. The weights live on Modal/RunPod
+# volumes, the adapters are 200–450 MB each, and `backups/` is a 13 GB volume snapshot.
+
+# Python / env
+.venv/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Secrets — never commit these, whatever they are called
+.env
+.env.*
+!.env.example
+*.civitai_token
+civitai_token
+
+# Local state and artefacts
+backups/
+out/
+*.log
+http_out.json
+http_status.txt
+
+# Model weights and adapters (volumes only)
+*.safetensors
+*.ckpt
+*.pth
+*.bin
+*.gguf
+
+# Binaries that ship as a release, not as source
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+*.tar
+*.tar.gz
+tools/caddy/

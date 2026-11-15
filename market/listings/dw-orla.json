@@ -1,0 +1,20 @@
+{
+  "slug": "dw-orla",
+  "name": "Orla — crew",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Dockmaster, weathered and unimpressed",
+  "prompt": "jinx_film, an older dockmaster with a weathered face and grey hair tied back, in a hangar bay, editorial studio hard key light, sharp focus, natural skin texture",
+  "seed": 8821,
+  "aspect": "1:1",
+  "thumb": "/api/market/thumb/dw-orla",
+  "weights": "per_image/orla.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900002,
+  "rating": "sfw"
+}

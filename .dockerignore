@@ -1,0 +1,25 @@
+# The RunPod image needs krea2/, orbit_guard.py and deploy/runpod/. Everything else is
+# context weight: the 13 GB backup volume, the 628 MB of renders, the venv and the logs.
+.venv
+backups
+out
+.git
+.github
+**/__pycache__
+*.log
+*.safetensors
+*.tar
+*.zip
+
+# Pages and marketing copy are served by the app, not baked into the worker image
+gallery
+market
+launch
+ui.html
+tools
+comfy
+docs
+
+# Keep the handler and its helpers
+!deploy/runpod/handler.py
+!deploy/runpod/checkpoint.py

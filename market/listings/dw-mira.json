@@ -1,0 +1,20 @@
+{
+  "slug": "dw-mira",
+  "name": "Mira — crew",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Galley cook, morning light",
+  "prompt": "jinx_film, a young cook laughing at a galley table, morning light through a porthole, 35mm film, shallow depth of field, natural skin texture",
+  "seed": 1189,
+  "aspect": "1:1",
+  "thumb": "/api/market/thumb/dw-mira",
+  "weights": "per_image/mira.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900006,
+  "rating": "sfw"
+}

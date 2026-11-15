@@ -1,0 +1,9 @@
+{
+  "_note": "Node ids belong to the workflow uploaded to RunningHub, not to this repo. These defaults match comfy/_ref/krea2_t2i.json (text 6, sampler 3, latent 5, LoRA 15). After uploading, open the exported workflow json and correct any id here, or point RUNNINGHUB_NODES at your own file.",
+  "prompt": {"nodeId": "6", "fieldName": "text"},
+  "seed": {"nodeId": "3", "fieldName": "seed"},
+  "width": {"nodeId": "5", "fieldName": "width"},
+  "height": {"nodeId": "5", "fieldName": "height"},
+  "lora": {"nodeId": "15", "fieldName": "lora_name"},
+  "scale": {"nodeId": "15", "fieldName": "strength_model"}
+}

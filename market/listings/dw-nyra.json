@@ -1,0 +1,20 @@
+{
+  "slug": "dw-nyra",
+  "name": "Nyra — navigator",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Night-shift navigator, viewport light",
+  "prompt": "jinx_film, a navigator with braided hair and a high collar, at a station viewport above a ring city, soft blue light, 35mm film, shallow depth of field",
+  "seed": 4412,
+  "aspect": "4:5",
+  "thumb": "/api/market/thumb/dw-nyra",
+  "weights": "per_image/nyra.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900001,
+  "rating": "sfw"
+}

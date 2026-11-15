@@ -1,0 +1,899 @@
+{
+ "last_node_id": 17,
+ "last_link_id": 21,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+    "default"
+   ],
+   "title": "Core · ascent"
+  },
+  {
+   "id": 2,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    380,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "None",
+    1.0
+   ],
+   "title": "Drift · ascent"
+  },
+  {
+   "id": 3,
+   "type": "ModelSamplingSD3",
+   "pos": [
+    760,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingSD3"
+   },
+   "widgets_values": [
+    5.0
+   ],
+   "title": "shift 5.0"
+  },
+  {
+   "id": 4,
+   "type": "UNETLoader",
+   "pos": [
+    0,
+    170
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+    "default"
+   ],
+   "title": "Core · descent"
+  },
+  {
+   "id": 5,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    380,
+    170
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "None",
+    1.0
+   ],
+   "title": "Drift · descent"
+  },
+  {
+   "id": 6,
+   "type": "ModelSamplingSD3",
+   "pos": [
+    760,
+    170
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingSD3"
+   },
+   "widgets_values": [
+    5.0
+   ],
+   "title": "shift 5.0"
+  },
+  {
+   "id": 7,
+   "type": "CLIPLoader",
+   "pos": [
+    0,
+    350
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      5,
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan",
+    "default"
+   ],
+   "title": "Text bridge"
+  },
+  {
+   "id": 8,
+   "type": "VAELoader",
+   "pos": [
+    0,
+    480
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      9,
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "wan_2.1_vae.safetensors"
+   ]
+  },
+  {
+   "id": 9,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    620
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "First frame"
+  },
+  {
+   "id": 10,
+   "type": "CLIPTextEncode",
+   "pos": [
+    380,
+    350
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "a pilot turns toward the viewport as the station rotates, camera slowly pushes in"
+   ],
+   "title": "Signal · motion phrase first"
+  },
+  {
+   "id": 11,
+   "type": "CLIPTextEncode",
+   "pos": [
+    380,
+    480
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+   ],
+   "title": "Void · stock negative"
+  },
+  {
+   "id": 12,
+   "type": "WanImageToVideo",
+   "pos": [
+    1120,
+    120
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 8
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 9
+    },
+    {
+     "name": "clip_vision_output",
+     "type": "CLIP_VISION_OUTPUT",
+     "link": null
+    },
+    {
+     "name": "start_image",
+     "type": "IMAGE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      12,
+      16
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      13,
+      17
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      14
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WanImageToVideo"
+   },
+   "widgets_values": [
+    832,
+    480,
+    81,
+    1
+   ],
+   "title": "832x480 · 81 frames"
+  },
+  {
+   "id": 13,
+   "type": "KSamplerAdvanced",
+   "pos": [
+    1500,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 11
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 12
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 13
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerAdvanced"
+   },
+   "widgets_values": [
+    "enable",
+    4242,
+    "randomize",
+    24,
+    5.0,
+    "euler",
+    "simple",
+    0,
+    12,
+    "enable"
+   ],
+   "title": "steps 0-12 · ascent"
+  },
+  {
+   "id": 14,
+   "type": "KSamplerAdvanced",
+   "pos": [
+    1500,
+    200
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 15
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 16
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 17
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerAdvanced"
+   },
+   "widgets_values": [
+    "disable",
+    4242,
+    "fixed",
+    24,
+    5.0,
+    "euler",
+    "simple",
+    12,
+    24,
+    "disable"
+   ],
+   "title": "steps 12-24 · descent"
+  },
+  {
+   "id": 15,
+   "type": "VAEDecode",
+   "pos": [
+    1860,
+    100
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 19
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 16,
+   "type": "SaveWEBM",
+   "pos": [
+    2200,
+    100
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 21
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveWEBM"
+   },
+   "widgets_values": [
+    "orbital_motion",
+    "vp9",
+    24,
+    32
+   ],
+   "title": "webm · remux to mp4 with ffmpeg"
+  },
+  {
+   "id": 17,
+   "type": "MarkdownNote",
+   "pos": [
+    0,
+    820
+   ],
+   "size": [
+    700,
+    340
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ORBITAL — motion path\n\n* **Two cores**: ascent model for the first half of the schedule, descent model for the second. `ModelSamplingSD3` shift 5.0 as in the stock template.\n* **24 steps split 12/12, CFG 5.0** — the deck defaults (`steps: 24`, `cfg: 5.0`). euler + simple.\n* **One adapter per expert**: `Lora Loader Model` after each loader, and the same file for both halves only if the author shipped both. `strength_model` is `lora_scale`.\n* **Trigger**: motion adapters fire on a phrase, not a word — put it at the start of the positive prompt. Applies to the same node as the still path.\n* **832x480, 81 frames, 24 fps**. `WanImageToVideo.length` must be 4n+1. `SaveWEBM` writes webm; remux with `ffmpeg -i in.webm -c copy out.mp4`.\n* **Adapter families must match**: an adapter trained for a different architecture loads but renders garbage here — refuse it by family. ComfyUI will not."
+   ],
+   "title": "BRIEFING"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   4,
+   0,
+   5,
+   0,
+   "MODEL"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   5,
+   7,
+   0,
+   10,
+   0,
+   "CLIP"
+  ],
+  [
+   6,
+   7,
+   0,
+   11,
+   0,
+   "CLIP"
+  ],
+  [
+   7,
+   10,
+   0,
+   12,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   11,
+   0,
+   12,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   9,
+   8,
+   0,
+   12,
+   2,
+   "VAE"
+  ],
+  [
+   10,
+   9,
+   0,
+   12,
+   4,
+   "IMAGE"
+  ],
+  [
+   11,
+   3,
+   0,
+   13,
+   0,
+   "MODEL"
+  ],
+  [
+   12,
+   12,
+   0,
+   13,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   13,
+   12,
+   1,
+   13,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   14,
+   12,
+   2,
+   13,
+   3,
+   "LATENT"
+  ],
+  [
+   15,
+   6,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   16,
+   12,
+   0,
+   14,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   17,
+   12,
+   1,
+   14,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   18,
+   13,
+   0,
+   14,
+   3,
+   "LATENT"
+  ],
+  [
+   19,
+   14,
+   0,
+   15,
+   0,
+   "LATENT"
+  ],
+  [
+   20,
+   8,
+   0,
+   15,
+   1,
+   "VAE"
+  ],
+  [
+   21,
+   15,
+   0,
+   16,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.8,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}

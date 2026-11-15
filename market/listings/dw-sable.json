@@ -1,0 +1,20 @@
+{
+  "slug": "dw-sable",
+  "name": "Sable — courier",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Courier in a rain shell, back to camera",
+  "prompt": "jinx_film, a courier in a dark rain shell seen from behind, empty landing platform, overcast light, documentary framing, 35mm film",
+  "seed": 3330,
+  "aspect": "16:9",
+  "thumb": "/api/market/thumb/dw-sable",
+  "weights": "per_image/sable.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900003,
+  "rating": "sfw"
+}

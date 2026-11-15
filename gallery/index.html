@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DUBWARZ · gallery</title>
+<meta name="description" content="A gallery of orbital characters, rendered on demand." />
+<style>
+  /* Velvet's palette, so the deck and the gallery read as one product. */
+  :root{
+    color-scheme:dark;
+    --void:#12050a; --panel:#1b0710; --panel-2:#260b17;
+    --line:rgba(255,143,177,.16); --line-strong:rgba(255,143,177,.38);
+    --star:#fff4f6; --dust:#d9a9b8;
+    --flare:#d91f52; --neon:#ff5c8a; --pink:#ff8fb1; --cream:#fff5f7;
+    --grad-btn:linear-gradient(135deg,#d91f52 0%,#a80c2e 100%);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--void);color:var(--star);
+    font:400 15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+  a{color:inherit}
+  header{padding:30px 26px 18px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;justify-content:space-between}
+  .mark{font-weight:700;letter-spacing:-.02em;font-size:22px}
+  .mark span{color:var(--neon);letter-spacing:.22em;font-size:11px;display:block;margin-top:4px;font-weight:500}
+  .sub{color:var(--dust);font-size:13px;max-width:46ch}
+  main{padding:26px;max-width:1280px;margin:0 auto}
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    display:flex;flex-direction:column;transition:border-color .15s}
+  .card:hover{border-color:#2c2c3a}
+  .shot{aspect-ratio:4/5;background:#0b0b10;display:grid;place-items:center;overflow:hidden}
+  .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  .shot .idle{color:#3a3a46;font-size:12px;letter-spacing:.14em}
+  .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .name{font-weight:600;font-size:16px}
+  .tag{color:var(--dust);font-size:12.5px;min-height:2.6em}
+  .row{display:flex;gap:8px;margin-top:auto}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:#15151c;color:var(--star);padding:9px 11px;flex:1}
+  button:hover{border-color:#33333f}
+  button.primary{background:var(--flare);border-color:var(--flare);color:#140b07;font-weight:600}
+  button.primary:disabled{opacity:.55;cursor:progress}
+  button.buy{flex:0 0 92px;color:var(--neon);border-color:#1d3a33}
+  .price{color:var(--dust);font-size:12px;margin-top:2px}
+  .msg{font-size:12px;color:var(--dust);min-height:1.2em}
+  .msg.err{color:#ff8a74}
+  footer{border-top:1px solid var(--line);margin-top:30px;padding:20px 26px;color:var(--dust);font-size:12.5px}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+  .bar button{flex:0 0 132px}
+  .bar .msg{flex:1 0 100%;min-height:1.1em}
+  .bar input{flex:1;min-width:220px;background:#0c0c11;border:1px solid var(--line);border-radius:8px;
+    color:var(--star);padding:10px 12px;font:inherit}
+  .badge{font-size:10.5px;letter-spacing:.14em;color:var(--dust);border:1px solid var(--line);
+    border-radius:99px;padding:3px 8px}
+  .src{color:var(--neon);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  .shot{position:relative}
+  .shot.film:after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.5}
+  .shot.film .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.3;
+    background-image:radial-gradient(rgba(255,255,255,.10) 1px,transparent 1px);background-size:3px 3px}
+  .q-neon:after{background:radial-gradient(circle at 70% 20%,rgba(226,84,44,.35),transparent 60%)}
+  .q-neon img{filter:saturate(1.28) contrast(1.06)}
+  .q-halation:after{background:radial-gradient(circle at 50% 35%,rgba(255,190,140,.28),transparent 65%)}
+  .q-halation img{filter:saturate(1.12) contrast(1.03) blur(.3px)}
+  .q-grain .grain{opacity:.55}
+  .q-vhs:after{background:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px,transparent 1px 3px)}
+  .q-vhs img{filter:contrast(1.12) saturate(1.2)}
+  .q-mono img{filter:grayscale(1) contrast(1.22)}
+  .q-golden img{filter:sepia(.16) saturate(1.24) brightness(1.05)}
+  .q-super8:after{background:radial-gradient(circle at 50% 50%,transparent 55%,rgba(0,0,0,.35))}
+  .q-super8 img{filter:sepia(.22) contrast(1.1)}
+  .q-crt:after{background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
+  .q-crt img{filter:saturate(1.3) contrast(1.08)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .chips span{font-size:9.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--neon);
+    border:1px solid #1d3a33;border-radius:99px;padding:2px 7px}
+  .chips span.dim{color:var(--dust);border-color:var(--line)}
+  .cmd{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px;margin:0 0 18px}
+  .cmd .k{font-size:10.5px;letter-spacing:.18em;color:var(--dust);text-transform:uppercase}
+  .cmd .v{font-weight:600;margin:4px 0 6px}
+  .cmd .d{color:var(--dust);font-size:13px}
+  /* gallery groups: every group collapses, so the page opens on one preview per group */
+  .groups{display:flex;flex-direction:column;gap:14px}
+  .grp{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+  .grp>summary{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;list-style:none}
+  .grp>summary::-webkit-details-marker{display:none}
+  .grp>summary::marker{content:""}
+  .grp[open]>summary{border-bottom:1px solid var(--line)}
+  .gname{font-weight:600;font-size:15px;letter-spacing:.04em}
+  .gcount{font-size:11px;color:var(--neon);border:1px solid #1d3a33;border-radius:99px;padding:2px 8px}
+  .gdoc{flex:1;color:var(--dust);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gprev{flex:0 0 auto;width:92px;height:115px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+  .gline{color:var(--dust);font-size:12.5px;padding:0 14px 12px;display:none}
+  .gempty{font-size:11px;color:var(--dust);border:1px dashed var(--line);border-radius:99px;padding:4px 9px;white-space:nowrap}
+  .emptynote{color:var(--dust);font-size:12.5px;margin:0;padding:4px 0}
+  /* master groups: several factions compressed into ONE master image */
+  .master{border:1px solid var(--line-strong);border-radius:14px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(55,224,176,.05),rgba(255,255,255,.01)),var(--panel)}
+  .master>summary{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;list-style:none}
+  .master>summary::-webkit-details-marker{display:none}
+  .master>summary::marker{content:""}
+  .master[open]>summary{border-bottom:1px solid var(--line)}
+  .mname{font-weight:700;font-size:16px;letter-spacing:.06em}
+  .mprev{flex:0 0 auto;width:180px;height:150px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#0b0b10}
+  .mbody{display:flex;flex-direction:column;gap:12px;padding:14px}
+  .grp[open] .gline{display:block}
+  .grp .grid{padding:14px 14px 16px}
+  /* chat: one character, one visitor, remembered in the orbital-chats Dict */
+  .chatb{flex:0 0 74px;color:var(--neon);border-color:#1d3a33}
+  .sheet{position:fixed;inset:0;z-index:70;display:none;background:rgba(7,7,10,.82);backdrop-filter:blur(6px)}
+  .sheet.on{display:grid;place-items:center;padding:20px}
+  .sheetbox{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .sheethead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .sheethead strong{font-size:15px;flex:1}
+  .pill{font:inherit;font-size:12px;color:var(--dust);background:#15151c;border:1px solid var(--line);
+    border-radius:8px;padding:7px 10px;cursor:pointer}
+  .pill input{display:none}
+  .chatnote{font-size:12px;color:var(--dust);padding:8px 14px 0;min-height:1.2em}
+  .chatbody{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:12px 14px}
+  .bubble{max-width:86%;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.5}
+  .bubble.you{align-self:flex-end;background:#1d1d26;border:1px solid var(--line)}
+  .bubble.her{align-self:flex-start;background:#12211d;border:1px solid #1d3a33}
+  .chatfoot{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)}
+  .chatfoot textarea{flex:1;resize:none;background:#0c0c11;color:var(--star);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;font:inherit}
+  .chatfoot .primary{flex:0 0 88px}
+
+  /* ══ Velvet skin ══════════════════════════════════════════════════════════
+     Burgundy ground, rose/crimson accents, serif display, pill controls and the
+     same fluid rhythm as dubwarz.vip — the gallery is the deck's public face. */
+  body{
+    background:
+      radial-gradient(90vmax 70vmax at 105% -20%, rgba(255,92,138,.20), transparent 68%),
+      radial-gradient(80vmax 80vmax at -25% 120%, rgba(168,12,46,.42), transparent 70%),
+      var(--void);
+    font:400 15px/1.6 var(--sans);
+  }
+  h1,h2,h3,.mark,.gname,.mname{font-family:var(--serif);font-weight:600;color:var(--cream);letter-spacing:-.01em}
+  ::selection{background:rgba(255,92,138,.45);color:#fff}
+  header{padding:clamp(22px,3vw,34px) 26px 18px;border-bottom:1px solid var(--line)}
+  .mark{font-size:22px;letter-spacing:.2em;text-transform:uppercase}
+  .mark span{color:var(--pink);letter-spacing:.24em}
+  .sub{color:var(--dust);font-size:13.5px;max-width:52ch}
+  main{max-width:1240px;padding:clamp(20px,3vw,34px) 26px}
+  .card{border:1px solid var(--line);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,143,177,.07),rgba(255,255,255,.012)),var(--panel)}
+  .card:hover{border-color:var(--line-strong)}
+  .row button{border-radius:999px;border:1px solid var(--line-strong);background:rgba(255,143,177,.06);color:var(--star)}
+  .row button:hover{background:rgba(255,143,177,.14);border-color:var(--pink)}
+  button.primary{background:var(--grad-btn);border-color:transparent;color:#fff;font-weight:650;
+    box-shadow:0 10px 26px -12px rgba(217,31,82,.8), inset 0 1px 0 rgba(255,255,255,.22)}
+  button.primary:hover{filter:brightness(1.07)}
+  .badge{border:1px solid var(--line-strong);color:var(--pink);background:rgba(255,143,177,.08);border-radius:999px}
+  .chips span{color:var(--pink);border-color:var(--line-strong)}
+  .chips span.dim{color:var(--dust);border-color:var(--line)}
+  .src{color:var(--pink)}
+  .bar input,.chatfoot textarea,.pill{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;color:var(--star)}
+  .bar input:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,92,138,.16)}
+  .bar button{flex:0 0 132px;border-radius:999px}
+  .groups{gap:16px}
+  .grp,.master{border:1px solid var(--line);border-radius:20px;background:var(--panel)}
+  .master{border-color:var(--line-strong);
+    background:linear-gradient(180deg,rgba(255,143,177,.10),rgba(255,255,255,.015)),var(--panel)}
+  .grp>summary,.master>summary{padding:14px 16px;gap:14px}
+  .gprev{border-radius:12px}
+  .mprev{border-radius:14px}
+  .chatb{color:var(--pink);border-color:var(--line-strong);flex:0 0 74px}
+  .sheet{background:rgba(18,5,10,.86)}
+  .sheetbox{border:1px solid var(--line-strong);border-radius:20px}
+  .sheethead strong{font-family:var(--serif);color:var(--cream)}
+  .bubble.you{background:rgba(255,143,177,.12);border:1px solid var(--line-strong)}
+  .bubble.her{background:rgba(217,31,82,.14);border:1px solid rgba(255,92,138,.32)}
+  footer{border-top:1px solid var(--line);color:var(--dust);font-size:13px;line-height:1.7}
+  footer a,.cmd a{color:var(--pink)}
+
+  /* the command block: a hero, not a paragraph */
+  .cmd{border:1px solid var(--line);border-radius:22px;margin:0 0 18px;
+    padding:clamp(20px,3vw,32px);
+    background:linear-gradient(180deg,rgba(255,143,177,.10),rgba(255,255,255,.015)),var(--panel)}
+  .cmd .k{font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--pink)}
+  .vname{font-size:clamp(30px,4.4vw,46px);letter-spacing:.12em;margin:6px 0 0;line-height:1.05}
+  .vep{margin:4px 0 14px;color:var(--neon);font-family:var(--serif);font-style:italic;font-size:16px}
+  .vfaction{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  .fname{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#fff;
+    background:var(--grad-btn);border-radius:999px;padding:5px 11px}
+  .fdoc{color:var(--dust);font-size:13px}
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .stat{font-size:12px;color:var(--dust);border:1px solid var(--line);
+    border-radius:999px;padding:5px 11px;background:rgba(255,255,255,.015)}
+  .stat b{color:var(--cream);font-weight:650}
+  .recruits{list-style:none;margin:0;padding:0;display:grid;gap:8px;
+    grid-template-columns:repeat(auto-fill,minmax(272px,1fr))}
+  .rec{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 11px;
+    border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.014)}
+  .rname{font-weight:600;color:var(--cream);font-size:13.5px}
+  .rgroup{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--pink);white-space:nowrap}
+  .rcareer{grid-column:1/-1;color:var(--dust);font-size:12px}
+  .rgift{grid-column:1/-1;color:rgba(217,169,184,.72);font-size:11.5px;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="mark">DUBWARZ<span>ORBITAL GALLERY</span></div>
+  </div>
+  <div class="sub">The deck's hyper-selection: the Second Life roster's groups, plus women who
+    never had an SL body at all. Every card renders on demand from a seed and a prompt —
+    generate one free, or buy the pack (prompt, seed, settings and any fitted adapter).</div>
+</header>
+
+<main>
+  <section id="command" class="cmd"></section>
+  <div class="bar">
+    <input id="p" placeholder="describe a prompt — it is distilled into an AI girlfriend on the global gallery" autocomplete="off" />
+    <button id="go" class="primary">Distill</button>
+    <div class="msg" id="dmsg"></div>
+  </div>
+  <div class="bar">
+    <input id="q" placeholder="filter by name, group or tag" autocomplete="off" />
+    <span class="badge" id="count">loading</span>
+  </div>
+  <div class="groups" id="grid"></div>
+</main>
+
+<footer>
+  Renders are unfiltered; you are responsible for what you publish. Nothing here is a real
+  person. Purchases deliver a pack, not the weights of the base model.
+</footer>
+
+<div class="sheet" id="chatSheet">
+  <div class="sheetbox">
+    <div class="sheethead">
+      <strong id="chatTitle">chat</strong>
+      <label class="pill">profile pic<input type="file" id="chatFile" accept="image/*" /></label>
+      <button class="pill" id="chatClose">close</button>
+    </div>
+    <div class="chatnote" id="chatNote"></div>
+    <div class="chatbody" id="chatBody"></div>
+    <div class="chatfoot">
+      <textarea id="chatInput" rows="1" placeholder="say something — she keeps it for next time"></textarea>
+      <button class="primary" id="chatSend">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const grid = document.getElementById("grid");
+const q = document.getElementById("q");
+const countEl = document.getElementById("count");
+let items = [];
+let groupMeta = [];   // /api/culture groups, so an open-but-empty faction still shows
+let mastersMeta = []; // master groups: factions compressed into one master image each
+let selfNode = "";
+
+const aspect = (a) => { const [w,h] = (a||"4:5").split(":").map(Number); return [Math.round(1024*w/h/16)*16, 1024]; };
+
+function card(c){
+  const el = document.createElement("div");
+  const cu = c.culture || {};
+  const film = cu.film && cu.film.css ? cu.film.css : "q-grain";
+  el.className = "card";
+  el.dataset.k = (c.name + " " + (c.tag||"") + " " + (c.group||"") + " " + (c.tagline||"")).toLowerCase();
+  el.innerHTML = `
+    <div class="shot film ${film}"><div class="grain"></div>${c.thumb
+      ? `<img alt="${c.name}" loading="lazy" src="${c.thumb}">`
+      : `<div class="idle">NOT RENDERED</div>`}</div>
+    <div class="body">
+      <div class="name">${c.name}</div>
+      <div class="tag">${c.tagline}</div>
+      ${c.tag ? `<div class="src">${c.group ? c.group + " · " : ""}${c.tag}</div>` : ""}
+      ${cu.pop ? `<div class="chips"><span>${cu.pop}</span><span>${cu.music || ""}</span><span>${cu.art || ""}</span></div>` : ""}
+      ${cu.era ? `<div class="chips"><span class="dim">${cu.era}</span><span class="dim">${cu.medium || ""}</span><span class="dim">${cu.archetype || ""}</span></div>` : ""}
+      ${c.node && c.node !== selfNode ? `<div class="src">via ${c.node}</div>` : ""}
+      <div class="msg"></div>
+      <div class="row">
+        <button class="primary" data-act="gen">Generate</button>
+        <button class="chatb" data-act="chat">Chat</button>
+        ${c.price_cents > 0
+          ? `<button class="buy" data-act="buy">$${(c.price_cents/100).toFixed(2)}</button>`
+          : `<span class="badge">distilled · free</span>`}
+      </div>
+    </div>`;
+  const chatBtn = el.querySelector("[data-act=chat]");
+  if(chatBtn) chatBtn.onclick = () => openChat(c);
+  el.querySelector("[data-act=gen]").onclick = (e) => generate(c, el, e.target);
+  const buyBtn = el.querySelector("[data-act=buy]");
+  if(buyBtn) buyBtn.onclick = (e) => buy(c, el, e.target);
+  return el;
+}
+
+async function generate(c, el, btn){
+  const shot = el.querySelector(".shot"), msg = el.querySelector(".msg");
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "rendering…";
+  try{
+    const [w,h] = aspect(c.aspect);
+    const r = await fetch("/api/generate", {
+      method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({prompt:c.prompt, seed:c.seed, width:w, height:h, steps:8, cfg:0, count:1})
+    });
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    const im = (d.images||[])[0];
+    if(!im) throw new Error("no image returned");
+    shot.innerHTML = `<img alt="${c.name}" src="data:image/png;base64,${im.data}">`;
+    msg.textContent = `seed ${d.seed ?? c.seed} · ${d.seconds ?? "?"}s`;
+    c.thumb = null;  // a fresh render replaces the stock frame
+  }catch(err){
+    msg.className = "msg err"; msg.textContent = String(err.message||err).slice(0,120);
+  }finally{ btn.disabled = false; }
+}
+
+async function buy(c, el, btn){
+  const msg = el.querySelector(".msg");
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "checking out…";
+  try{
+    const r = await fetch("/api/shop/checkout", {
+      method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({sku:c.sku})
+    });
+    const d = await r.json();
+    if(r.status === 503){
+      msg.className = "msg err";
+      msg.textContent = "payments not configured yet — no charge was made";
+      return;
+    }
+    if(!r.ok) throw new Error(d.error || ("http " + r.status));
+    msg.textContent = d.client_secret ? "checkout ready" : "no client secret";
+    if(d.client_secret) window.location.href = "/checkout?cs=" + encodeURIComponent(d.client_secret);
+  }catch(err){
+    msg.className = "msg err"; msg.textContent = String(err.message||err).slice(0,120);
+  }finally{ btn.disabled = false; }
+}
+
+function groupOf(c){
+  const f = (c.culture || {}).faction || {};
+  return { key: f.key || ("g:" + (c.group || "general")), name: f.name || (c.group || "general"),
+           doctrine: f.doctrine || "" };
+}
+
+function paint(){
+  const term = q.value.trim().toLowerCase();
+  grid.innerHTML = "";
+  const shown = items.filter(c => !term || (c.name+" "+(c.tag||"")+" "+(c.group||"")+" "+(c.tagline||"")).toLowerCase().includes(term));
+  const order = [], map = new Map();
+  shown.forEach(c => {
+    const g = groupOf(c);
+    if(!map.has(g.key)){ map.set(g.key, {...g, rows: []}); order.push(g.key); }
+    map.get(g.key).rows.push(c);
+  });
+  // Groups with no cards yet (the non-SL factions) still appear, collapsed and empty.
+  if(!term) groupMeta.forEach(g => {
+    if(!map.has(g.key)){
+      map.set(g.key, { key: g.key, name: g.name, doctrine: g.doctrine, rows: [], line: g.line });
+      order.push(g.key);
+    }
+  });
+  // VELA COMMAND leads, then the rest in first-seen order.
+  order.sort((a, b) => (a === "vela_command" ? -1 : b === "vela_command" ? 1 : 0));
+
+  const factionEl = (g) => {
+    const el = document.createElement("details");
+    el.className = "grp";
+    if(term) el.open = true;                 // a search opens whatever it matched
+    const first = g.rows.find(c => c.thumb) || g.rows[0];
+    const head = document.createElement("summary");
+    head.innerHTML = `<span class="gname">${g.name}</span>` +
+      `<span class="gcount">${g.rows.length}</span>` +
+      `<span class="gdoc">${g.doctrine}</span>` +
+      (first && first.thumb ? `<img class="gprev" alt="${first.name}" loading="lazy" src="${first.thumb}">`
+                            : `<span class="gempty">open \u00b7 recruiting</span>`);
+    const body = document.createElement("div");
+    body.className = "grid";
+    g.rows.forEach(c => body.appendChild(card(c)));
+    if(!g.rows.length){
+      const note = document.createElement("p");
+      note.className = "emptynote";
+      note.textContent = g.line || "This group is open; its first renders land here.";
+      body.appendChild(note);
+    }
+    el.append(head, body);
+    return el;
+  };
+
+  // Masters first: each collapses to a SINGLE master image, its factions nested inside.
+  const used = new Set();
+  const masters = mastersMeta.length
+    ? mastersMeta
+    : [{ key: "all", name: "ALL GROUPS", line: "", groups: order, count: shown.length }];
+  masters.forEach(m => {
+    const inner = (m.groups || []).filter(k => map.has(k));
+    inner.forEach(k => used.add(k));
+    const hasCards = inner.some(k => map.get(k).rows.length);
+    const el = document.createElement("details");
+    el.className = "master";
+    if(term && hasCards) el.open = true;
+    const head = document.createElement("summary");
+    head.innerHTML = `<span class="mname">${m.name}</span>` +
+      `<span class="gcount">${m.count ?? inner.reduce((n, k) => n + map.get(k).rows.length, 0)}</span>` +
+      `<span class="gdoc">${m.line || ""}</span>` +
+      (hasCards
+        ? `<img class="mprev" alt="${m.name}" loading="lazy" src="/api/gallery/master/${m.key}?v=${Math.floor(Date.now() / 600000)}">`
+        : `<span class="gempty">open \u00b7 recruiting</span>`);
+    const body = document.createElement("div");
+    body.className = "mbody";
+    inner.forEach(k => body.appendChild(factionEl(map.get(k))));
+    if(!inner.length){
+      const note = document.createElement("p");
+      note.className = "emptynote";
+      note.textContent = m.line || "This master group is open.";
+      body.appendChild(note);
+    }
+    el.append(head, body);
+    grid.appendChild(el);
+  });
+  // Any faction a master does not claim still shows, so nothing silently disappears.
+  [...map.keys()].filter(k => !used.has(k)).forEach(k => grid.appendChild(factionEl(map.get(k))));
+  countEl.textContent = shown.length + " / " + items.length + " \u00b7 " + masters.length + " masters";
+}
+
+fetch("/api/gallery?ts=" + Date.now()).then(r => r.json()).then(d => {
+  items = d.characters || [];
+  selfNode = ((d.nodes || [])[0] || {}).node || "";
+  paint();
+}).catch(() => {
+  countEl.textContent = "catalog unavailable";
+});
+
+q.oninput = paint;
+
+fetch("/api/culture").then(r => r.json()).then(d => {
+  groupMeta = d.groups || [];
+  mastersMeta = d.masters || [];
+  paint();
+  const c = d.commander || {}, f = d.faction || {};
+  const el = document.getElementById("command");
+  const rows = (d.recruits || []).map(r => `
+    <li class="rec">
+      <span class="rname">${r.name}</span>
+      <span class="rgroup">${r.faction}</span>
+      <span class="rcareer">${r.career}</span>
+      <span class="rgift">${r.gift || ""}</span>
+    </li>`).join("");
+  el.innerHTML = `
+    <div class="k">the command</div>
+    <h1 class="vname">${c.name || ""}</h1>
+    <p class="vep">${c.epithet || ""}</p>
+    <div class="vfaction"><span class="fname">${f.name || ""}</span>
+      <span class="fdoc">${f.doctrine || ""}</span></div>
+    <div class="stats">
+      <span class="stat"><b>${(d.members || []).length}</b> phases</span>
+      <span class="stat"><b>${(d.recruits || []).length}</b> recruits</span>
+      <span class="stat"><b>${(d.relations || []).length}</b> dynamics</span>
+    </div>
+    <ul class="recruits">${rows}</ul>`;
+}).catch(() => {});
+
+const p = document.getElementById("p");
+const go = document.getElementById("go");
+const dmsg = document.getElementById("dmsg");
+
+go.onclick = async () => {
+  const text = p.value.trim();
+  if(text.length < 3){ p.focus(); dmsg.className = "msg err"; dmsg.textContent = "a few more words"; return; }
+  go.disabled = true; go.textContent = "distilling…"; dmsg.className = "msg"; dmsg.textContent = "";
+  try{
+    const r = await fetch("/api/girlfriend/distill", {
+      method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({prompt:text})
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || ("http " + r.status));
+    items.unshift(d.item); p.value = ""; paint();
+    dmsg.textContent = d.item.group + " · " + d.item.tag + " — " + d.item.name + " added to the global gallery";
+  }catch(err){
+    dmsg.className = "msg err"; dmsg.textContent = String(err.message||err).slice(0,140);
+  }finally{ go.disabled = false; go.textContent = "Distill"; }
+};
+
+p.onkeydown = (e) => { if(e.key === "Enter") go.click(); };
+
+/* ── chat: the character talks back, and remembers this visitor ──────────── */
+const UID_KEY = "dubwarz_uid";
+function uid(){
+  let u = localStorage.getItem(UID_KEY);
+  if(!u){
+    u = "u-" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    localStorage.setItem(UID_KEY, u);
+  }
+  return u;
+}
+const sheet = document.getElementById("chatSheet");
+const cbody = document.getElementById("chatBody");
+const cinput = document.getElementById("chatInput");
+const ctitle = document.getElementById("chatTitle");
+const cnote = document.getElementById("chatNote");
+let current = null;
+
+function bubble(who, text){
+  const el = document.createElement("div");
+  el.className = "bubble " + who;
+  el.textContent = text;
+  cbody.appendChild(el);
+  cbody.scrollTop = cbody.scrollHeight;
+}
+
+async function openChat(c){
+  current = c; ctitle.textContent = c.name;
+  cbody.innerHTML = ""; cnote.textContent = ""; cinput.value = "";
+  sheet.classList.add("on"); cinput.focus();
+  try{
+    const r = await fetch("/api/chat/" + c.sku + "?user_id=" + encodeURIComponent(uid()));
+    const d = await r.json();
+    if(d.profile) cnote.textContent = "she can see: " + d.profile;
+    (d.messages || []).forEach(m => bubble(m.role === "assistant" ? "her" : "you", m.text));
+    if(!(d.messages || []).length) bubble("her", c.name + " is here. Say something.");
+  }catch(_){ bubble("her", "…"); }
+}
+
+async function sendChat(){
+  const text = cinput.value.trim();
+  if(!text || !current) return;
+  bubble("you", text); cinput.value = "";
+  const btn = document.getElementById("chatSend"); btn.disabled = true;
+  try{
+    const r = await fetch("/api/chat/" + current.sku, {
+      method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({ user_id: uid(), message: text })
+    });
+    const d = await r.json();
+    bubble("her", d.reply || d.error || "no answer");
+  }catch(err){ bubble("her", String(err.message || err)); }
+  finally{ btn.disabled = false; cinput.focus(); }
+}
+
+function readFile(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+async function avatar(file){
+  if(!file) return;
+  cnote.textContent = "reading your profile picture…";
+  try{
+    const image = await readFile(file);
+    const r = await fetch("/api/profile/" + encodeURIComponent(uid()), {
+      method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({ image })
+    });
+    const d = await r.json();
+    cnote.textContent = d.profile ? ("she can see: " + d.profile) : (d.error || "could not read that");
+  }catch(err){ cnote.textContent = String(err.message || err); }
+}
+
+document.getElementById("chatClose").onclick = () => sheet.classList.remove("on");
+ document.getElementById("chatSend").onclick = sendChat;
+document.getElementById("chatFile").onchange = (e) => avatar(e.target.files[0]);
+cinput.onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); } };
+sheet.onclick = (e) => { if(e.target === sheet) sheet.classList.remove("on"); };
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "slug": "dw-iris",
+  "name": "Iris — pilot",
+  "seller": "JINXAI",
+  "price_cents": 2400,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Rooftop pilot, golden hour",
+  "prompt": "jinx_film, a pilot in a linen flight shirt on a ring-city rooftop at golden hour, city haze behind, cinematic teal and amber, 35mm film",
+  "seed": 9012,
+  "aspect": "9:16",
+  "thumb": "/api/market/thumb/dw-iris",
+  "weights": "per_image/iris.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900005,
+  "rating": "sfw"
+}

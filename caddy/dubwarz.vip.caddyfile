@@ -1,0 +1,64 @@
+# dubwarz.vip — Caddy site block.
+#
+# Caddy on this machine holds :80/:443/:2019 and is driven through its admin API on
+# 127.0.0.1:2019 (see `tools/caddy_route_aigf.py`); restarts need elevation:
+# `tools/caddy/restart_caddy.bat` with `tools/caddy/run_config.json`. Standalone test:
+#
+#   caddy validate --config caddy/dubwarz.vip.caddyfile --adapter caddyfile
+#   caddy run      --config caddy/dubwarz.vip.caddyfile --adapter caddyfile
+#
+# Shape: the domain's root is the main index, served locally. The ORBITAL (krea2) render
+# backend lives in the `/aigf` subfolder and nowhere else — it is not the index page.
+# Caddy strips `/aigf` from API calls, so the studio page can keep root-absolute paths on
+# the server side, and the Host header is pinned to the Modal hostname because Modal
+# routes on Host. `X-Orbital-Prefix` tells the app it was reached through the subfolder,
+# so JSON it returns (thumbnail URLs) arrives already carrying `/aigf`.
+
+dubwarz.vip, www.dubwarz.vip {
+	encode zstd gzip
+
+	request_body {
+		max_size 64MB
+	}
+
+	header {
+		-Server
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+	}
+
+	# The render studio and its API, under a subfolder.
+	handle /aigf/api/* {
+		uri strip_prefix /aigf
+		reverse_proxy https://xzyorb--orbital.us-east.modal.run {
+			header_up Host xzyorb--orbital.us-east.modal.run
+			header_up X-Orbital-Prefix /aigf
+			flush_interval -1
+			transport http {
+				tls
+			}
+		}
+	}
+
+	handle /aigf /aigf/* {
+		reverse_proxy https://xzyorb--orbital.us-east.modal.run {
+			header_up Host xzyorb--orbital.us-east.modal.run
+			header_up X-Orbital-Prefix /aigf
+			flush_interval -1
+			transport http {
+				tls
+			}
+		}
+	}
+
+	# Everything else is the main index.
+	handle {
+		reverse_proxy 127.0.0.1:8792 {
+			flush_interval -1
+		}
+	}
+}
+
+# If the Caddyfile already has a dubwarz.vip block, delete that block first: two blocks for
+# the same hostnames is a config error, and duplicated reverse_proxy handlers produce 502s.

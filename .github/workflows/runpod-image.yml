@@ -1,0 +1,56 @@
+name: runpod-image
+
+# Builds the public Krea 2 worker on every change to the worker's inputs and publishes it to
+# GHCR. This is the path that does not need a local Docker daemon or a registry login:
+# `ghcr.io/<owner>/<repo>:latest` is what the RunPod endpoint pulls.
+#
+# After the first successful run, make the package public (Packages → this package →
+# Settings → Change visibility) so RunPod can pull it without a registry credential.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "deploy/runpod/**"
+      - "krea2/**"
+      - "orbit_guard.py"
+      - ".github/workflows/runpod-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The CUDA runtime plus torch is ~10 GB of layers; the default runner disk is tight.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune --all --force
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Report the image
+        run: echo "pushed ghcr.io/${{ github.repository }}:latest"

@@ -1,0 +1,132 @@
+{
+  "name": "JINXAI ORBITAL",
+  "version": "1.0.0",
+  "idea_statement": "Take a short description and return a 1024px editorial portrait by expanding it into a full photographic prompt and rendering it on an 8-step distilled core.",
+  "brand": {
+    "master": "JINXAI",
+    "product": "JINXAI ORBITAL",
+    "platform": "ORBITAL CORE",
+    "tier": "PULSAR",
+    "voice": "dry, specific, numbers over adjectives"
+  },
+  "platform": {
+    "publish_as": "AI App (Workflow)",
+    "runs_on": "hosted node graph",
+    "comfy_workflow": "../comfy/orbital_portrait.json",
+    "modal_server_used": false,
+    "why": "The app executes on the host's node graph, so the graph is the product. The private render deck stays behind a key and is never part of this listing."
+  },
+  "sampler": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "denoise": 1.0,
+    "note": "Distilled core. CFG 1.0 with a zeroed negative is guidance off, which is what the brief asks for."
+  },
+  "resolution": {
+    "mode": "aspect_preset",
+    "default": "1:1",
+    "presets": {
+      "1:1": [1024, 1024],
+      "4:5": [912, 1152],
+      "3:4": [896, 1168],
+      "16:9": [1168, 656],
+      "9:16": [656, 1168]
+    },
+    "note": "Sizes are multiples of 16; the latent grid patchifies 8x2."
+  },
+  "lora": {
+    "enabled": true,
+    "max_stack": 2,
+    "stack": [
+      {
+        "slot": 1,
+        "name": "<SFW style adapter — see briefing>",
+        "strength": 0.8,
+        "trigger": "<activation tag from that adapter's page>"
+      },
+      {
+        "slot": 2,
+        "name": "None",
+        "strength": 0.0,
+        "trigger": ""
+      }
+    ],
+    "rule": "A stack member at strength 0 is skipped. Triggers go first in the assembled prompt; they are the only part the user cannot override.",
+    "economics_note": "Two members from the same creator count once for incentive purposes."
+  },
+  "inputs": [
+    {
+      "id": "subject",
+      "label": "Who or what",
+      "type": "text",
+      "required": true,
+      "max_chars": 220,
+      "default": "a navigator with freckles and a blunt bob",
+      "placeholder": "a navigator with freckles and a blunt bob"
+    },
+    {
+      "id": "scene",
+      "label": "Scene and light",
+      "type": "text",
+      "required": false,
+      "max_chars": 220,
+      "default": "at a station viewport above a ring city, soft morning light",
+      "placeholder": "at a station viewport above a ring city, soft morning light"
+    },
+    {
+      "id": "style",
+      "label": "Look",
+      "type": "select",
+      "required": false,
+      "options": [
+        "35mm film, shallow depth of field",
+        "editorial studio, hard key light",
+        "natural light, documentary",
+        "high-contrast black and white",
+        "cinematic teal and amber"
+      ],
+      "default": "35mm film, shallow depth of field"
+    },
+    {
+      "id": "aspect",
+      "label": "Aspect",
+      "type": "select",
+      "required": false,
+      "options": ["1:1", "4:5", "3:4", "16:9", "9:16"],
+      "default": "1:1"
+    },
+    {
+      "id": "strength",
+      "label": "Style strength",
+      "type": "range",
+      "required": false,
+      "min": 0.0,
+      "max": 1.2,
+      "step": 0.05,
+      "default": 0.8
+    },
+    {
+      "id": "seed",
+      "label": "Seed",
+      "type": "number",
+      "required": false,
+      "default": -1,
+      "note": "-1 means random"
+    }
+  ],
+  "prompt_template": "{triggers}, {subject}, {scene}, {style}, sharp focus, natural skin texture",
+  "negative_prompt": "",
+  "negative_note": "Empty on purpose. At CFG 1.0 the negative branch is unused; a zeroed negative keeps the graph honest instead of pretending a negative prompt does something.",
+  "output": {
+    "count": 1,
+    "format": "png",
+    "filename_prefix": "orbital_portrait"
+  },
+  "guardrails": {
+    "sfw_only": true,
+    "blocked_topics": ["minors", "real identifiable people", "explicit sexual content", "graphic violence"],
+    "why": "The platform incentive requires a positive, healthy creative direction; an unfiltered app is not publishable under it."
+  }
+}

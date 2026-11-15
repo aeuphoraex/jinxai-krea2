@@ -1,0 +1,838 @@
+{
+ "last_node_id": 17,
+ "last_link_id": 20,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "krea2_turbo_fp8_scaled.safetensors",
+    "default"
+   ],
+   "title": "Core · portrait array"
+  },
+  {
+   "id": 2,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    380,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "None",
+    0.8
+   ],
+   "title": "Drift 1 · stack member"
+  },
+  {
+   "id": 3,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    380,
+    150
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      5,
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "None",
+    0.6
+   ],
+   "title": "Drift 2 · stack member"
+  },
+  {
+   "id": 4,
+   "type": "CLIPLoader",
+   "pos": [
+    0,
+    250
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3vl_4b_fp8_scaled.safetensors",
+    "krea2",
+    "default"
+   ],
+   "title": "Text bridge · 12-layer tap"
+  },
+  {
+   "id": 5,
+   "type": "VAELoader",
+   "pos": [
+    0,
+    470
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      10,
+      13,
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "qwen_image_vae.safetensors"
+   ],
+   "title": "Latent decoder"
+  },
+  {
+   "id": 6,
+   "type": "CLIPTextEncode",
+   "pos": [
+    760,
+    250
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      4,
+      6,
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "jinx_film, a navigator in a rust-orange flight suit at a station viewport, morning light, 35mm film, shallow depth of field"
+   ],
+   "title": "Signal · trigger first"
+  },
+  {
+   "id": 7,
+   "type": "ConditioningZeroOut",
+   "pos": [
+    1120,
+    470
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7,
+      16
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ConditioningZeroOut"
+   },
+   "widgets_values": [],
+   "title": "Void · guidance off"
+  },
+  {
+   "id": 8,
+   "type": "EmptyLatentImage",
+   "pos": [
+    760,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EmptyLatentImage"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    1
+   ],
+   "title": "1024x1024 · still frame"
+  },
+  {
+   "id": 9,
+   "type": "KSampler",
+   "pos": [
+    1120,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 5
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 6
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    5150,
+    "randomize",
+    8,
+    1.0,
+    "euler",
+    "simple",
+    1.0
+   ],
+   "title": "8 steps · CFG 1 · euler/simple"
+  },
+  {
+   "id": 10,
+   "type": "VAEDecode",
+   "pos": [
+    1500,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 9
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 11,
+   "type": "SaveImage",
+   "pos": [
+    1860,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 11
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "orbital_portrait"
+   ]
+  },
+  {
+   "id": 12,
+   "type": "LoadImage",
+   "pos": [
+    380,
+    400
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Init frame · echo branch (muted)"
+  },
+  {
+   "id": 13,
+   "type": "VAEEncode",
+   "pos": [
+    760,
+    400
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "pixels",
+     "type": "IMAGE",
+     "link": 12
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEEncode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 14,
+   "type": "KSampler",
+   "pos": [
+    1120,
+    220
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 14
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 15
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 16
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 17
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    5150,
+    "randomize",
+    8,
+    1.0,
+    "euler",
+    "simple",
+    0.6
+   ],
+   "title": "echo · denoise 0.6"
+  },
+  {
+   "id": 15,
+   "type": "VAEDecode",
+   "pos": [
+    1500,
+    220
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 18
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 16,
+   "type": "SaveImage",
+   "pos": [
+    1860,
+    220
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 20
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "orbital_echo"
+   ]
+  },
+  {
+   "id": 17,
+   "type": "MarkdownNote",
+   "pos": [
+    0,
+    700
+   ],
+   "size": [
+    700,
+    340
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ORBITAL — portrait array\n\n* **8 steps, CFG 1.0, euler + simple**, 1024x1024 — the distilled core is trained for exactly this.\n* **Negative is `ConditioningZeroOut`**, not a text prompt: at CFG 1 the negative branch is unused, which is what `cfg: 0` does in the deck.\n* **Drift stack**: chain as many `Lora Loader Model` nodes as needed. Each `strength_model` is that adapter's scale (`style_loras[].scale`).\n* **Triggers first**: put every stacked adapter's trigger word at the head of the prompt. The deck re-inserts triggers *after* expansion; stock ComfyUI has no registry, so the text here is the final prompt.\n* **Echo branch**: the lower branch is `LoadImage -> VAEEncode -> KSampler (denoise 0.6)`, matching `strength: 0.6`. Unmute it and mute the empty-latent sampler if you only want one path.\n* **4K**: the deck re-denoises overlapping 1536 px tiles with RoPE offsets. Stock equivalent is `ImageUpscaleWithModel` / Ultimate SD Upscale at ~0.3 denoise, not wired here."
+   ],
+   "title": "BRIEFING"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   4,
+   0,
+   6,
+   0,
+   "CLIP"
+  ],
+  [
+   4,
+   6,
+   0,
+   7,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   5,
+   3,
+   0,
+   9,
+   0,
+   "MODEL"
+  ],
+  [
+   6,
+   6,
+   0,
+   9,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   7,
+   7,
+   0,
+   9,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   8,
+   0,
+   9,
+   3,
+   "LATENT"
+  ],
+  [
+   9,
+   9,
+   0,
+   10,
+   0,
+   "LATENT"
+  ],
+  [
+   10,
+   5,
+   0,
+   10,
+   1,
+   "VAE"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   12,
+   12,
+   0,
+   13,
+   0,
+   "IMAGE"
+  ],
+  [
+   13,
+   5,
+   0,
+   13,
+   1,
+   "VAE"
+  ],
+  [
+   14,
+   3,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   15,
+   6,
+   0,
+   14,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   16,
+   7,
+   0,
+   14,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   17,
+   13,
+   0,
+   14,
+   3,
+   "LATENT"
+  ],
+  [
+   18,
+   14,
+   0,
+   15,
+   0,
+   "LATENT"
+  ],
+  [
+   19,
+   5,
+   0,
+   15,
+   1,
+   "VAE"
+  ],
+  [
+   20,
+   15,
+   0,
+   16,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.8,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}

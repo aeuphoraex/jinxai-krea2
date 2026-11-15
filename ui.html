@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velvet · AIGF Pro — the render deck</title>
+<meta name="theme-color" content="#12050a" />
+<meta name="description" content="AIGF Pro — the paid tier above Velvet. The deep-field render deck: 2K stills, 4K refine, image-to-video and LoRA export, from the same companions." />
+<style>
+  /* Velvet's palette, verbatim: burgundy ground, crimson ground-gradient, rose, blush. */
+  :root {
+    color-scheme: dark;
+    --bg: #12050a;
+    --panel: #1b0710;
+    --panel-2: #260b17;
+    --line: rgba(255, 143, 177, .16);
+    --line-strong: rgba(255, 143, 177, .38);
+    --text: #fff4f6;
+    --text-soft: #f6d7df;
+    --muted: #d9a9b8;
+    --accent: #d91f52;
+    --accent-2: #ff5c8a;
+    --pink: #ff8fb1;
+    --cream: #fff5f7;
+    --ok: #ffd6e0;
+    --radius: 22px;
+    --radius-sm: 14px;
+    --gap: clamp(14px, 2.2vw, 22px);
+    --section: clamp(36px, 6vw, 72px);
+    --pad-x: clamp(16px, 5vw, 64px);
+    --grad-btn: linear-gradient(135deg, #d91f52 0%, #a80c2e 100%);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 600px at 78% -10%, rgba(255, 90, 54, .13), transparent 60%),
+      radial-gradient(900px 500px at 5% 110%, rgba(255, 176, 58, .07), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 24px; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(8, 8, 10, .82); backdrop-filter: blur(14px);
+  }
+  .mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #140800;
+  }
+  h1 { font-size: 15px; letter-spacing: .16em; text-transform: uppercase; margin: 0; font-weight: 650; }
+  .badge {
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255, 90, 54, .45);
+    color: #ffb59f; background: rgba(255, 90, 54, .1);
+  }
+  .navlink {
+    font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+    color: var(--text); background: var(--panel-2); white-space: nowrap;
+  }
+  .navlink:hover { border-color: rgba(255, 90, 54, .65); color: #ffb59f; }
+  .spacer { flex: 1; }
+  .gpu { font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+  main {
+    display: grid; grid-template-columns: 400px minmax(0, 1fr);
+    gap: 18px; padding: 18px 24px 40px; align-items: start;
+  }
+  @media (max-width: 1080px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: linear-gradient(180deg, var(--panel), #0c0c0f);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 16px;
+  }
+  .panel + .panel { margin-top: 14px; }
+  label.row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .val { font: 11.5px/1 ui-monospace, monospace; color: var(--accent-2); }
+  textarea, input[type=number], input[type=text], select {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+    font: inherit; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
+  textarea:focus, input:focus, select:focus {
+    border-color: rgba(255, 90, 54, .65); box-shadow: 0 0 0 3px rgba(255, 90, 54, .12);
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    border-radius: 999px; padding: 6px 11px; font: 12px/1 inherit; cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { color: var(--text); border-color: #3a3a45; }
+  .chip.on { color: #170800; background: linear-gradient(140deg, var(--accent), var(--accent-2)); border-color: transparent; font-weight: 600; }
+  input[type=range] { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 4px; background: #2c2c36; outline: none; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #0b0b0e; cursor: pointer;
+  }
+  .rowgap { margin-bottom: 14px; }
+  .switch { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .switch input { display: none; }
+  .track { width: 38px; height: 21px; border-radius: 999px; background: #2c2c36; position: relative; transition: background .18s; flex: none; }
+  .track::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px;
+    border-radius: 50%; background: #9a9aa8; transition: transform .18s, background .18s;
+  }
+  .switch input:checked + .track { background: rgba(255, 90, 54, .35); }
+  .switch input:checked + .track::after { transform: translateX(17px); background: var(--accent); }
+  .hint { color: #6f6f7c; font-size: 11.5px; margin-top: 6px; }
+  .tabs { display: flex; gap: 3px; padding: 3px; background: #101013; border: 1px solid var(--line); border-radius: 10px; }
+  .tab {
+    border: 0; background: transparent; color: var(--muted); font: 12px/1 inherit;
+    padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: all .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.on { background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: #170800; font-weight: 650; }
+  .drop {
+    display: block; position: relative; border: 1px dashed var(--line); border-radius: 10px;
+    padding: 22px 14px; text-align: center; color: #6f6f7c; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .drop:hover, .drop.over { border-color: rgba(255, 90, 54, .6); color: var(--text); }
+  .drop input { display: none; }
+  .drop img { display: none; width: 100%; border-radius: 8px; }
+  .drop.has img { display: block; }
+  .drop.has #dropText { display: none; }
+  .card video { display: block; width: 100%; background: #000; cursor: pointer; }
+  .lorajob { color: var(--accent-2); }
+  .lorajob a { color: var(--accent-2); text-decoration: none; border-bottom: 1px dotted rgba(255, 176, 58, .5); }
+  .card.wide { grid-column: 1 / -1; }
+  .tl { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .tlitem { position: relative; width: 82px; }
+  .tlitem img { width: 100%; border-radius: 7px; display: block; border: 1px solid var(--line); }
+  .tlitem button {
+    position: absolute; top: 2px; right: 2px; width: 17px; height: 17px; border-radius: 5px;
+    border: 0; background: rgba(0, 0, 0, .68); color: #ffb4a4; font-size: 12px; line-height: 1;
+    cursor: pointer; padding: 0;
+  }
+  .tlitem button:hover { background: rgba(255, 90, 54, .85); color: #170800; }
+  button.primary {
+    width: 100%; border: none; border-radius: 11px; padding: 13px 16px; cursor: pointer;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: #170800;
+    font-weight: 750; font-size: 14px; letter-spacing: .02em;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    transition: transform .12s, filter .15s, opacity .15s;
+  }
+  button.primary:hover:not(:disabled) { filter: brightness(1.07); }
+  button.primary:active:not(:disabled) { transform: translateY(1px); }
+  button.primary:disabled { opacity: .55; cursor: progress; }
+  .spinner {
+    width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(23, 8, 0, .3);
+    border-top-color: #170800; animation: spin .7s linear infinite; display: none;
+  }
+  .busy .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status { margin-top: 10px; font: 12px/1.4 ui-monospace, monospace; color: var(--muted); min-height: 17px; }
+  .status.err { color: #ff8f7a; }
+  .status b { color: var(--ok); font-weight: 600; }
+
+  .stage { min-height: 420px; }
+  .empty {
+    border: 1px dashed var(--line); border-radius: var(--radius); padding: 70px 24px;
+    text-align: center; color: #5d5d6a;
+  }
+  .empty strong { display: block; color: #8b8b98; font-weight: 600; margin-bottom: 6px; letter-spacing: .02em; }
+  .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .card {
+    position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    background: #0d0d10; animation: rise .35s ease both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  .card img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+  .meta {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    font: 11px/1 ui-monospace, monospace; color: var(--muted); border-top: 1px solid var(--line);
+  }
+  .meta a {
+    margin-left: auto; color: #cfcfd8; text-decoration: none; border: 1px solid var(--line);
+    padding: 4px 9px; border-radius: 7px; font-size: 11px;
+  }
+  .meta a:hover { border-color: var(--accent); color: var(--accent-2); }
+  .promptbox {
+    margin-bottom: 14px; padding: 11px 13px; border: 1px solid var(--line); border-left: 2px solid var(--accent);
+    border-radius: 10px; background: var(--panel); font-size: 12.5px; color: #c9c9d2;
+  }
+  .promptbox .lbl { margin-bottom: 4px; }
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .92); display: none;
+    place-items: center; z-index: 60; padding: 28px; cursor: zoom-out;
+  }
+  .lightbox.on { display: grid; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .skeleton { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); aspect-ratio: 1; background: #0d0d10; }
+  .skeleton::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.05) 45%, transparent 70%);
+    animation: sweep 1.3s infinite;
+  }
+  @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  footer { padding: 0 24px 28px; color: #55555f; font-size: 11.5px; }
+  a { color: #9a9aa8; }
+
+  /* ══ Velvet theme ══════════════════════════════════════════════════════════
+     AIGF Pro is the tier above Velvet, so it wears Velvet's clothes: the same
+     burgundy ground and rose/crimson accents, serif display, pill controls and
+     one fluid spacing scale. Nothing here changes behaviour, only the skin. */
+  body {
+    background:
+      radial-gradient(78vmax 78vmax at 108% -46%, rgba(255, 92, 138, .20), transparent 70%),
+      radial-gradient(78vmax 78vmax at -38% 150%, rgba(168, 12, 46, .42), transparent 70%),
+      var(--bg);
+    font: 15px/1.6 var(--sans);
+  }
+  h1, h2, h3, .brand {
+    font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; color: var(--cream);
+  }
+  ::selection { background: rgba(255, 92, 138, .45); color: #fff; }
+  :focus-visible { outline: 2px solid var(--pink); outline-offset: 3px; }
+
+  header.bar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: var(--gap);
+    min-height: 68px; padding: 10px var(--pad-x);
+    background: linear-gradient(180deg, rgba(27, 7, 16, .92), rgba(27, 7, 16, .70));
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+    backdrop-filter: blur(18px) saturate(1.35);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: .5em;
+    font-size: 20px; letter-spacing: .22em; text-transform: uppercase; text-decoration: none;
+  }
+  .brand::before {
+    content: ""; width: .62em; height: .62em; border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--accent));
+    box-shadow: 0 0 20px rgba(217, 31, 82, .6);
+  }
+  .tierpill {
+    font: 600 10.5px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+    padding: 7px 12px; border-radius: 999px; color: #fff; background: var(--grad-btn);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22);
+  }
+  h1 { font-size: 12.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .badge {
+    font-size: 10.5px; letter-spacing: .14em; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--line-strong); color: var(--pink); background: rgba(255, 143, 177, .08);
+  }
+  .nav { display: flex; align-items: center; gap: 6px; }
+  .nav a {
+    display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px;
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    color: var(--text-soft); font-size: 14px; text-decoration: none;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .nav a:hover { background: rgba(255, 143, 177, .12); color: #fff; border-color: var(--pink); }
+  .gpu { color: var(--muted); }
+
+  /* ── the tier band: Velvet is the service, this is the tier above it ───── */
+  .tier { max-width: 1240px; margin: 0 auto; padding: var(--section) var(--pad-x) 0; }
+  .tier .k { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--pink); }
+  .tier h2 { margin: 10px 0 12px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.12; }
+  .tier .lede { color: var(--text-soft); font-size: 15px; line-height: 1.65; max-width: 74ch; margin: 0; }
+  .tier-grid {
+    display: grid; gap: var(--gap); margin-top: var(--gap);
+    grid-template-columns: repeat(auto-fit, minmax(min(258px, 100%), 1fr));
+  }
+  .tier-card {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: clamp(20px, 2.6vw, 28px); border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255, 143, 177, .08), rgba(255, 255, 255, .015)), var(--panel);
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  .tier-card:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: 0 24px 50px -24px rgba(217, 31, 82, .5); }
+  .tier-card .n { font: 600 12px/1 var(--sans); letter-spacing: .16em; color: var(--muted); }
+  .tier-card h3 { margin: 0; font-size: 21px; line-height: 1.2; }
+  .tier-card h3 span {
+    font: 600 10px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+    color: #fff; background: var(--grad-btn); padding: 5px 9px; border-radius: 999px;
+    vertical-align: middle; margin-left: 7px;
+  }
+  .tier-card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-soft); }
+  .tier-card .go { margin-top: auto; padding-top: 6px; color: var(--pink); font-size: 13.5px; text-decoration: none; }
+  .tier-card .go:hover { color: #fff; }
+  .tier-card.next { border-color: var(--line-strong); box-shadow: 0 30px 60px -30px rgba(217, 31, 82, .5); }
+
+  /* ── the deck itself ──────────────────────────────────────────────────── */
+  main {
+    display: grid; grid-template-columns: clamp(320px, 32vw, 430px) minmax(0, 1fr);
+    gap: var(--gap); align-items: start;
+    max-width: 1240px; margin: 0 auto; padding: var(--gap) var(--pad-x) var(--section);
+  }
+  @media (max-width: 1080px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: clamp(18px, 2.6vw, 26px);
+    background: linear-gradient(180deg, rgba(255, 143, 177, .08), rgba(255, 255, 255, .015)), var(--panel);
+  }
+  .panel + .panel { margin-top: var(--gap); }
+  .lbl { letter-spacing: .14em; color: var(--muted); }
+  .val { font-family: var(--sans); color: var(--pink); }
+  .hint { color: rgba(217, 169, 184, .72); }
+  textarea, input[type=number], input[type=text], input[type=password], select {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    color: var(--text); padding: 12px 14px; font: inherit;
+  }
+  textarea:focus, input:focus, select:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(255, 92, 138, .16); }
+  .tabs { background: rgba(18, 5, 10, .55); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .chip, .tab {
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    background: rgba(255, 143, 177, .06); color: var(--text-soft);
+    padding: 7px 14px; font-size: 12.5px; transition: background .2s, color .2s, border-color .2s;
+  }
+  .chip:hover, .tab:hover { background: rgba(255, 143, 177, .14); color: #fff; border-color: var(--pink); }
+  .chip.on, .tab.on {
+    background: var(--grad-btn); border-color: transparent; color: #fff; font-weight: 650;
+    box-shadow: 0 8px 22px -12px rgba(217, 31, 82, .8);
+  }
+  button.primary {
+    width: 100%; min-height: 50px; border: 0; border-radius: 999px;
+    background: var(--grad-btn); color: #fff; font-weight: 650; font-size: 15px;
+    box-shadow: 0 12px 30px -10px rgba(217, 31, 82, .7), inset 0 1px 0 rgba(255, 255, 255, .22);
+  }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); }
+  .spinner { border-color: rgba(255, 255, 255, .35); border-top-color: #fff; }
+  .status { color: var(--muted); }
+  .status.err { color: #ffb3c4; }
+  .status b { color: var(--cream); }
+  .empty { border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--muted); }
+  .empty strong { color: var(--text-soft); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  .meta { color: var(--muted); border-top: 1px solid var(--line); }
+  .meta a { color: var(--text-soft); border: 1px solid var(--line-strong); border-radius: 999px; }
+  .meta a:hover { border-color: var(--pink); color: #fff; }
+  .promptbox {
+    border: 1px solid var(--line); border-left: 2px solid var(--pink);
+    border-radius: var(--radius-sm); background: rgba(255, 143, 177, .05); color: var(--text-soft);
+  }
+  .drop { border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); color: var(--muted); }
+  .drop:hover, .drop.over { border-color: var(--pink); color: var(--text); }
+  .tlitem img { border: 1px solid var(--line); border-radius: 10px; }
+  input[type=range] { background: rgba(255, 143, 177, .25); }
+  input[type=range]::-webkit-slider-thumb { background: var(--accent-2); border-color: var(--bg); }
+  .track { background: rgba(255, 143, 177, .22); }
+  .switch input:checked + .track { background: rgba(217, 31, 82, .5); }
+  .switch input:checked + .track::after { background: var(--accent-2); }
+  .lightbox { background: rgba(10, 3, 7, .94); }
+  a { color: var(--pink); }
+  footer {
+    max-width: 1240px; margin: 0 auto;
+    padding: var(--section) var(--pad-x) calc(env(safe-area-inset-bottom, 0px) + 56px);
+    border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.7;
+  }
+  footer p { margin: 6px 0; max-width: 80ch; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="https://dubwarz.vip/">Velvet</a>
+  <span class="tierpill">AIGF Pro</span>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-m="t2i">Text → Image</button>
+    <button class="tab" data-m="i2i">Image → Image</button>
+    <button class="tab" data-m="i2v">Video</button>
+  </div>
+  <div class="spacer"></div>
+  <nav class="nav" aria-label="Primary">
+    <a href="https://dubwarz.vip/">Velvet</a>
+    <a href="/aigf/gallery">Gallery</a>
+    <a href="https://dubwarz.vip/#/membership">Plans</a>
+  </nav>
+  <div class="gpu" id="gpu">workers idle · first run cold-starts</div>
+</header>
+
+<section class="tier" id="plans">
+  <div class="k">The next tier of Velvet</div>
+  <h2>Velvet is the service. This is the deck above it.</h2>
+  <p class="lede">Velvet sells the companions — avatars of real Second Life performers, their clips
+    and memberships. <strong>AIGF Pro</strong> is the tier above it: the same girls, rendered live and
+    without a filter, as new scenes, new frames and motion. It is sold on the Velvet plans, so one
+    membership covers both AIGF and Velvet.</p>
+  <div class="tier-grid">
+    <div class="tier-card">
+      <div class="n">01</div>
+      <h3>Velvet</h3>
+      <p>The main service. Roster, quality tiers, membership and performer signup — free to start,
+        and every performer keeps her share.</p>
+      <a class="go" href="https://dubwarz.vip/">Open Velvet →</a>
+    </div>
+    <div class="tier-card">
+      <div class="n">02</div>
+      <h3>AIGF</h3>
+      <p>The public gallery every node feeds: browse the cast, generate any of them once for free.</p>
+      <a class="go" href="/aigf/gallery">Browse the gallery →</a>
+    </div>
+    <div class="tier-card next">
+      <div class="n">03</div>
+      <h3>AIGF Pro <span>next tier</span></h3>
+      <p>This deck. 2K stills with a 4K refine, image-to-image, image-to-video and LoRA export —
+        the pro side of the plans, bundled with Velvet membership.</p>
+      <a class="go" href="https://dubwarz.vip/#/membership">See the plans →</a>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section>
+    <div class="panel">
+      <label class="row"><span class="lbl">Prompt</span><span class="val" id="chars">0</span></label>
+      <textarea id="prompt" placeholder="natural language, as detailed as you like — e.g. 'extreme close-up of a woman's face partially obscured by tousled dark brown hair, soft parted lips, cinematic warm lighting, film grain'"></textarea>
+      <div class="hint">Long, grounded prompts work best. Put words you want rendered in quotes.</div>
+    </div>
+
+    <div class="panel" id="panel-init" style="display:none">
+      <label class="row"><span class="lbl">Init image</span><span class="val" id="initMeta">none</span></label>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/*" />
+        <div id="dropText">Drop, paste (Ctrl+V) or click to choose a frame</div>
+        <img id="initPreview" alt="init frame" />
+      </label>
+      <div id="strengthWrap" style="display:none">
+        <div class="rowgap"></div>
+        <label class="row"><span class="lbl">Strength</span><span class="val" id="strengthVal">0.60</span></label>
+        <input type="range" id="strength" min="0.15" max="0.95" step="0.05" value="0.6" />
+        <div class="hint">Low keeps the original composition and lighting; high follows the prompt.</div>
+      </div>
+      <div class="hint" id="initHint"></div>
+    </div>
+
+    <div class="panel" id="panel-frame" style="display:none">
+      <label class="row"><span class="lbl">Frame</span><span class="val" id="sizeLabel">1024 × 1024</span></label>
+      <div class="chips" id="ratios">
+        <button class="chip on" data-r="1:1">1:1</button>
+        <button class="chip" data-r="4:5">4:5</button>
+        <button class="chip" data-r="3:4">3:4</button>
+        <button class="chip" data-r="16:9">16:9</button>
+        <button class="chip" data-r="9:16">9:16</button>
+        <button class="chip" data-r="21:9">21:9</button>
+      </div>
+      <div class="rowgap"></div>
+      <label class="row"><span class="lbl">Base resolution</span></label>
+      <div class="chips" id="resos">
+        <button class="chip" data-b="1024">1K</button>
+        <button class="chip on" data-b="1328">1.3K</button>
+        <button class="chip" data-b="1536">1.5K</button>
+        <button class="chip" data-b="2048">2K</button>
+      </div>
+      <div class="rowgap"></div>
+      <label class="row"><span class="lbl">Output</span><span class="val" id="upLabel">native</span></label>
+      <div class="chips" id="upsCh">
+        <button class="chip on" data-u="0">native</button>
+        <button class="chip" data-u="3840">4K</button>
+      </div>
+      <div class="hint">The core renders natively at 1K–2K. 4K renders at 2K then re-denoises overlapping 1536 px tiles, so it adds real detail — expect several minutes.</div>
+    </div>
+
+    <div class="panel" id="panel-video" style="display:none">
+      <label class="row"><span class="lbl">Length</span><span class="val" id="durLabel">81 frames · 3.4 s</span></label>
+      <div class="chips" id="framesCh">
+        <button class="chip" data-f="49">2 s</button>
+        <button class="chip on" data-f="81">3.4 s</button>
+        <button class="chip" data-f="121">5 s</button>
+      </div>
+      <div class="rowgap"></div>
+      <label class="row"><span class="lbl">Quality</span><span class="val" id="qLabel">480p</span></label>
+      <div class="chips" id="qualityCh">
+        <button class="chip on" data-q="480">480p</button>
+        <button class="chip" data-q="720">720p</button>
+      </div>
+      <div class="rowgap"></div>
+      <label class="row"><span class="lbl">Video model</span></label>
+      <select id="vmodel" class="rowgap">
+        <option value="wan22-a14b">ORBITAL MOTION · 28B · best realism</option>
+        <option value="wan22-5b">ORBITAL MOTION · 5B · fast</option>
+      </select>
+      <label class="row"><span class="lbl">Video LoRA</span></label>
+      <select id="vlora" class="rowgap">
+        <option value="">none</option>
+      </select>
+      <div id="vloraWrap" style="display:none">
+        <label class="row"><span class="lbl">LoRA strength</span><span class="val" id="vloraVal">1.00</span></label>
+        <input type="range" id="vloraScale" min="0" max="1.5" step="0.05" value="1" />
+        <div class="hint" id="vloraHint" style="margin-top:4px"></div>
+      </div>
+      <div class="hint">24 fps · the clip starts from the init frame, so that frame is what it depicts. A14B is capped at 49 frames for 720p on one 80 GB card.</div>
+    </div>
+
+    <div class="panel" id="panel-stitch" style="display:none">
+      <label class="row"><span class="lbl">Timeline</span><span class="val" id="tlMeta">0 clips</span></label>
+      <div class="tl" id="timeline"><div class="hint" id="tlEmpty" style="margin:0">Render a clip, then Extend to chain it.</div></div>
+      <div class="grid2">
+        <button class="chip" id="extendBtn" style="padding:10px 0">Extend last</button>
+        <button class="chip" id="stitchBtn" style="padding:10px 0">Stitch → mp4</button>
+      </div>
+      <div class="hint">Extend feeds the newest clip's final frame back in as the next init frame, so clips continue each other.</div>
+    </div>
+
+    <div class="panel">
+      <div class="grid3 rowgap" style="display:none">
+        <div>
+          <label class="row"><span class="lbl">Seed</span></label>
+          <input type="number" id="seed" value="-1" />
+        </div>
+        <div>
+          <label class="row"><span class="lbl">Count</span></label>
+          <select id="count">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+          </select>
+        </div>
+        <div>
+          <label class="row"><span class="lbl">&nbsp;</span></label>
+          <button class="chip" id="dice" style="width:100%;padding:11px 0">random</button>
+        </div>
+      </div>
+      <div id="coreOnly">
+        <div class="row" style="margin-bottom:6px">
+          <span class="lbl">Her adapter</span><span class="val" id="studioLoraNote">auto</span>
+        </div>
+        <div id="stylePicker" style="display:none">
+        <select id="styleLora" class="rowgap" disabled>
+          <option value="">none</option>
+        </select>
+        <div id="styleWrap" style="display:none">
+          <label class="row"><span class="lbl">LoRA strength</span><span class="val" id="styleVal">1.00</span></label>
+          <input type="range" id="styleScale" min="0" max="1.5" step="0.05" value="1" />
+          <div class="row" style="gap:6px;margin-top:8px">
+            <button id="styleAdd" class="chip">Stack +</button>
+            <button id="styleGet" class="chip" style="display:none">Download LoRA</button>
+            <button id="styleAll" class="chip">Download all</button>
+          </div>
+          <div id="loraStack" class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+          <div class="row" style="gap:6px;margin-top:8px">
+            <input type="password" id="civitaiToken" placeholder="Civitai API token (once)" />
+            <button id="saveToken" class="chip">Save</button>
+          </div>
+          <div id="styleMsg" class="hint" style="margin-top:6px"></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <button class="primary" id="go"><span class="spinner"></span><span id="goLabel">Generate</span></button>
+      <div class="status" id="status">Ready.</div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div id="promptbox"></div>
+    <div id="results" class="results"></div>
+    <div class="empty" id="empty">
+      <strong>Nothing rendered yet</strong>
+      Describe a scene, pick a frame, hit generate.
+    </div>
+  </section>
+</main>
+<footer class="foot">
+  <p>AIGF Pro is the render tier of <a href="https://dubwarz.vip/">Velvet</a>. Every companion is the
+    avatar of a consenting adult Second Life performer — nothing here is a real person.</p>
+  <p>Renders are unfiltered. Output is yours to keep, publish or sell; the base weights and the
+    deck itself are not.</p>
+  <p id="billing-note">Plans are billed through Velvet. Checkout is not open yet — nothing on this
+    page can charge you.</p>
+</footer>
+<div class="lightbox" id="lightbox"><img alt="" /></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { ratio: "1:1", base: 1328, mode: "t2i", frames: 81, quality: 480, upscale: 0 };
+const timeline = [];
+let initData = null;   // data URL of the init frame
+let initRatio = 1;
+
+const RATIOS = { "1:1": 1, "4:5": 0.8, "3:4": 0.75, "16:9": 16 / 9, "9:16": 9 / 16, "21:9": 21 / 9 };
+const snap16 = (v) => Math.max(512, Math.min(2048, Math.round(v / 16) * 16));
+
+function sizeFor() {
+  const r = state.mode === "i2i" && initData ? initRatio : RATIOS[state.ratio];
+  let w = state.base * Math.sqrt(r);
+  let h = state.base / Math.sqrt(r);
+  const m = Math.max(w, h);
+  if (m > 2048) { w = w * 2048 / m; h = h * 2048 / m; }
+  return { width: snap16(w), height: snap16(h) };
+}
+const snap32 = (v) => Math.max(256, Math.round(v / 32) * 32);
+function videoDims() {
+  const long = state.quality >= 720 ? 1280 : 832;
+  let w = initRatio >= 1 ? long : long * initRatio;
+  let h = initRatio >= 1 ? long / initRatio : long;
+  w = snap32(w); h = snap32(h);
+  const budget = 1280 * 704;
+  if (w * h > budget) { const k = Math.sqrt(budget / (w * h)); w = snap32(w * k); h = snap32(h * k); }
+  return { width: w, height: h };
+}
+function paintSize() {
+  if (state.mode === "i2v") {
+    if (!initData) { $("sizeLabel").textContent = "add a frame"; return; }
+    const { width, height } = videoDims();
+    $("sizeLabel").textContent = `${width} × ${height}`;
+    return;
+  }
+  const { width, height } = sizeFor();
+  $("sizeLabel").textContent = `${width} × ${height}`;
+}
+
+function setMode(m, reset = true) {
+  state.mode = m;
+  const video = m === "i2v";
+  [...$("tabs").children].forEach((b) => b.classList.toggle("on", b.dataset.m === m));
+  $("panel-init").style.display = m === "t2i" ? "none" : "block";
+  $("panel-stitch").style.display = video ? "block" : "none";
+  $("coreOnly").style.display = video ? "none" : "block";
+  $("initHint").textContent = video
+    ? "The clip begins on this frame, so that frame is what the video depicts."
+    : "The core encodes this frame and re-denoises it at a fixed strength — composition stays, texture moves.";
+  $("goLabel").textContent = video ? "Make video" : m === "i2i" ? "Re-render" : "Generate";
+  paintSize();
+  persist();
+}
+
+function chipGroup(el, attr, key) {
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    [...el.children].forEach((c) => c.classList.remove("on"));
+    b.classList.add("on");
+    state[key] = attr === "data-b" ? Number(b.dataset.b) : b.dataset.r;
+    paintSize();
+    persist();
+  });
+}
+chipGroup($("ratios"), "data-r", "ratio");
+chipGroup($("resos"), "data-b", "base");
+
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".tab");
+  if (b) setMode(b.dataset.m);
+});
+$("framesCh").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  [...$("framesCh").children].forEach((c) => c.classList.remove("on"));
+  b.classList.add("on");
+  state.frames = Number(b.dataset.f);
+  $("durLabel").textContent = `${state.frames} frames · ${(state.frames / 24).toFixed(1)} s`;
+  paintSize();
+  persist();
+});
+$("upsCh").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  [...$("upsCh").children].forEach((c) => c.classList.remove("on"));
+  b.classList.add("on");
+  state.upscale = Number(b.dataset.u);
+  $("upLabel").textContent = state.upscale ? `4K · ${state.upscale}px` : "native";
+  persist();
+});
+$("qualityCh").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  [...$("qualityCh").children].forEach((c) => c.classList.remove("on"));
+  b.classList.add("on");
+  state.quality = Number(b.dataset.q);
+  $("qLabel").textContent = `${state.quality}p`;
+  paintSize();
+  persist();
+});
+
+$("prompt").addEventListener("input", (e) => { $("chars").textContent = e.target.value.length; persist(); });
+$("strength").addEventListener("input", (e) => { $("strengthVal").textContent = Number(e.target.value).toFixed(2); persist(); });
+["seed", "count", "styleLora"].forEach((id) => $(id).addEventListener("change", persist));
+$("styleLora").addEventListener("change", () => {
+  const spec = loraCatalog[$("styleLora").value];
+  if (spec && spec.default_scale != null) {
+    $("styleScale").value = spec.default_scale;
+    $("styleVal").textContent = Number(spec.default_scale).toFixed(2);
+  }
+  syncStyle();
+  persist();
+});
+$("styleGet").addEventListener("click", getLora);
+$("vlora").addEventListener("change", () => {
+  const spec = videoLoraCatalog[$("vlora").value];
+  if (spec && spec.default_scale != null) {
+    $("vloraScale").value = spec.default_scale;
+    $("vloraVal").textContent = Number(spec.default_scale).toFixed(2);
+  }
+  syncVideoLora();
+  persist();
+});
+$("vloraScale").addEventListener("input", (e) => {
+  $("vloraVal").textContent = Number(e.target.value).toFixed(2);
+  persist();
+});
+$("styleAll").addEventListener("click", getAllLoras);
+$("saveToken").addEventListener("click", saveToken);
+$("styleScale").addEventListener("input", (e) => {
+  $("styleVal").textContent = Number(e.target.value).toFixed(2);
+  persist();
+});
+$("dice").addEventListener("click", () => {
+  $("seed").value = Math.floor(Math.random() * 2 ** 31);
+  persist();
+});
+
+function ingest(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      // 1280 on the long side keeps the JSON payload small without hurting the result.
+      const k = Math.min(1, 1280 / Math.max(im.width, im.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(im.width * k);
+      c.height = Math.round(im.height * k);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      initData = c.toDataURL("image/jpeg", 0.95);
+      initRatio = c.width / c.height;
+      $("initPreview").src = initData;
+      $("drop").classList.add("has");
+      $("initMeta").textContent = `${c.width}×${c.height}`;
+      paintSize();
+    };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+$("file").addEventListener("change", (e) => ingest(e.target.files[0]));
+$("drop").addEventListener("dragover", (e) => { e.preventDefault(); $("drop").classList.add("over"); });
+$("drop").addEventListener("dragleave", () => $("drop").classList.remove("over"));
+$("drop").addEventListener("drop", (e) => {
+  e.preventDefault();
+  $("drop").classList.remove("over");
+  ingest(e.dataTransfer.files[0]);
+});
+document.addEventListener("paste", (e) => {
+  const f = [...((e.clipboardData && e.clipboardData.files) || [])].find((x) => x.type.startsWith("image/"));
+  if (f) ingest(f);
+});
+
+function persist() {
+  const s = {
+    prompt: $("prompt").value, ratio: state.ratio, base: state.base,
+    seed: $("seed").value,
+    count: $("count").value,
+    mode: state.mode, strength: $("strength").value,
+    frames: state.frames, quality: state.quality, upscale: state.upscale,
+    vmodel: $("vmodel").value,
+    vlora: $("vlora").value, vloraScale: $("vloraScale").value,
+  };
+  localStorage.setItem("krea2", JSON.stringify(s));
+}
+function restore() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem("krea2") || "null"); } catch (e) {}
+  if (!s) { paintSize(); return; }
+  if (s.prompt) { $("prompt").value = s.prompt; $("chars").textContent = s.prompt.length; }
+  if (s.ratio && RATIOS[s.ratio]) {
+    state.ratio = s.ratio;
+    [...$("ratios").children].forEach((c) => c.classList.toggle("on", c.dataset.r === s.ratio));
+  }
+  if (s.base) {
+    state.base = Number(s.base);
+    [...$("resos").children].forEach((c) => c.classList.toggle("on", Number(c.dataset.b) === state.base));
+  }
+  if (s.seed !== undefined) $("seed").value = s.seed;
+  if (s.count) $("count").value = s.count;
+  // No adapter is restored from storage: hers comes from the profile in the URL.
+  if (s.strength) { $("strength").value = s.strength; $("strengthVal").textContent = Number(s.strength).toFixed(2); }
+  if (s.frames) {
+    state.frames = Number(s.frames);
+    [...$("framesCh").children].forEach((c) => c.classList.toggle("on", Number(c.dataset.f) === state.frames));
+    $("durLabel").textContent = `${state.frames} frames · ${(state.frames / 24).toFixed(1)} s`;
+  }
+  if (s.quality) {
+    state.quality = Number(s.quality);
+    [...$("qualityCh").children].forEach((c) => c.classList.toggle("on", Number(c.dataset.q) === state.quality));
+    $("qLabel").textContent = `${state.quality}p`;
+  }
+  if (s.vmodel) $("vmodel").value = s.vmodel;
+  if (s.vlora) {
+    const opt = document.createElement("option");
+    opt.value = s.vlora;
+    opt.textContent = s.vlora;
+    $("vlora").appendChild(opt);
+    $("vlora").value = s.vlora;
+  }
+  if (s.vloraScale) {
+    $("vloraScale").value = s.vloraScale;
+    $("vloraVal").textContent = Number(s.vloraScale).toFixed(2);
+  }
+  if (s.upscale) {
+    state.upscale = Number(s.upscale);
+    [...$("upsCh").children].forEach((c) => c.classList.toggle("on", Number(c.dataset.u) === state.upscale));
+    $("upLabel").textContent = state.upscale ? `4K · ${state.upscale}px` : "native";
+  }
+  setMode(s.mode || "t2i", false);
+  paintSize();
+}
+
+$("lightbox").addEventListener("click", () => $("lightbox").classList.remove("on"));
+$("results").addEventListener("click", (e) => {
+  const img = e.target.closest("img.shot");
+  if (!img) return;
+  $("lightbox").querySelector("img").src = img.src;
+  $("lightbox").classList.add("on");
+});
+
+function fail(msg) {
+  $("status").className = "status err";
+  $("status").textContent = msg;
+}
+
+async function runVideo() {
+  const prompt = $("prompt").value.trim();
+  if (!initData) { fail("load an init frame first — video is image → video."); return; }
+  if (!prompt) { $("prompt").focus(); return; }
+  const { width, height } = videoDims();
+  const payload = {
+    prompt,
+    init_image: initData,
+    frames: 81,
+    quality: 480,
+    model: "wan22-a14b",
+    lora: "",
+    lora_scale: 1,
+    steps: 24,
+    cfg: 5,
+    fps: 24,
+    seed: -1,
+  };
+
+  $("go").disabled = true;
+  $("go").classList.add("busy");
+  $("goLabel").textContent = "Rendering…";
+  $("empty").style.display = "none";
+  $("promptbox").innerHTML = "";
+  $("results").innerHTML = '<div class="skeleton" style="aspect-ratio:16/9"></div>';
+
+  const t0 = performance.now();
+  const tick = setInterval(() => {
+    const s = ((performance.now() - t0) / 1000).toFixed(0);
+    $("status").className = "status";
+    $("status").textContent = `${s}s · ${width}×${height} · ${payload.frames} frames @ ${payload.steps} steps` +
+      (s > 30 ? " · a clip takes minutes; the first one also loads the 5B model" : "");
+  }, 500);
+
+  try {
+    const res = await fetch("/api/video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    clearInterval(tick);
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    renderVideo(data);
+    timeline.push(data);
+    paintTimeline();
+    const total = ((performance.now() - t0) / 1000).toFixed(1);
+    $("status").className = "status";
+    $("status").innerHTML = `<b>done</b> · ${total}s wall · ${data.width}×${data.height} · ${data.frames}f @ ${data.fps}fps · ${data.seconds}s render`;
+  } catch (err) {
+    clearInterval(tick);
+    $("results").innerHTML = "";
+    $("empty").style.display = "block";
+    fail("failed · " + err.message);
+  } finally {
+    $("go").disabled = false;
+    $("go").classList.remove("busy");
+    $("goLabel").textContent = "Make video";
+  }
+}
+
+function renderVideo(data) {
+  const url = `data:video/mp4;base64,${data.video}`;
+  $("results").innerHTML = `<div class="card wide">
+    <video id="clip" src="${url}" poster="data:image/jpeg;base64,${data.thumb}" controls autoplay loop muted playsinline></video>
+    <div class="meta"><span>${data.width}×${data.height}</span><span>${data.frames}f @ ${data.fps}fps</span>
+      <span>seed ${data.seed}</span><span>${data.seconds}s</span>
+      <a download="orbital_${data.seed}.mp4" href="${url}">mp4</a>
+    </div></div>`;
+}
+
+async function run() {
+  if (state.mode === "i2v") return runVideo();
+  const prompt = $("prompt").value.trim();
+  if (!prompt) { $("prompt").focus(); return; }
+  if (state.mode === "i2i" && !initData) {
+    fail("load an init image first — image → image needs a frame.");
+    return;
+  }
+  const { width, height } = sizeFor();
+  const count = 1;
+  const payload = {
+    prompt,
+    width, height,
+    steps: 8,
+    cfg: 0,
+    seed: -1,
+    num_images: 1,
+    enhance: true,
+    init_image: state.mode === "i2i" ? initData : undefined,
+    strength: 0.6,
+    upscale: 0,
+    lora: true,
+    character: STUDIO_CHARACTER || undefined,
+  };
+
+  $("go").disabled = true;
+  $("go").classList.add("busy");
+  $("goLabel").textContent = "Rendering…";
+  $("empty").style.display = "none";
+  $("promptbox").innerHTML = "";
+  $("results").innerHTML = new Array(count).fill('<div class="skeleton"></div>').join("");
+
+  const t0 = performance.now();
+  const tick = setInterval(() => {
+    const s = ((performance.now() - t0) / 1000).toFixed(0);
+    $("status").className = "status";
+    $("status").textContent = `${s}s · ${width}×${height} · ${payload.steps} steps` +
+      (s > 25 ? " · cold start can take ~2 min (weights + compile)" : "");
+  }, 400);
+
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    clearInterval(tick);
+    render(data);
+    const total = ((performance.now() - t0) / 1000).toFixed(1);
+    $("status").className = "status";
+    $("status").innerHTML = `<b>done</b> · ${total}s wall · ${data.elapsed}s in worker` +
+      (data.enhanced ? " · prompt expanded" : "") +
+      ((data.style_loras || []).length
+        ? ` · ${data.style_loras.map((l) => `${l.name} @ ${l.scale}`).join(" + ")} (${data.style_adapters} layers)`
+        : "");
+  } catch (err) {
+    clearInterval(tick);
+    $("results").innerHTML = "";
+    $("empty").style.display = "block";
+    $("status").className = "status err";
+    $("status").textContent = "failed · " + err.message;
+  } finally {
+    $("go").disabled = false;
+    $("go").classList.remove("busy");
+    $("goLabel").textContent = state.mode === "i2v" ? "Make video" : state.mode === "i2i" ? "Re-render" : "Generate";
+  }
+}
+$("go").addEventListener("click", run);
+$("prompt").addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run();
+});
+
+function render(data) {
+  if (data.enhanced && data.prompt) {
+    $("promptbox").innerHTML =
+      `<div class="promptbox"><div class="lbl">expanded prompt</div>${escapeHtml(data.prompt)}</div>`;
+  }
+  $("results").innerHTML = data.images
+    .map(
+      (im, i) => `<div class="card" style="animation-delay:${i * 40}ms">
+        <img class="shot" src="data:image/png;base64,${im.data}" alt="generated image" loading="lazy" />
+        <div class="meta"><span>${im.width}×${im.height}</span>${data.mode === "img2img" ? `<span>str ${data.strength}</span>` : ""}<span>seed ${im.seed}</span>
+          <span>${im.seconds}s</span>
+          ${loraSlot(data, i)}
+          <a download="orbital_${im.seed}.png" href="data:image/png;base64,${im.data}">png</a>
+        </div></div>`
+    )
+    .join("");
+  (data.lora_jobs || []).forEach(watchLora);
+}
+function loraSlot(data, i) {
+  const job = (data.lora_jobs || []).find((j) => j.index === i);
+  return job ? `<span class="lorajob" data-lora="${job.id}">lora …</span>` : "";
+}
+
+async function watchLora(job) {
+  const el = document.querySelector(`[data-lora="${job.id}"]`);
+  if (!el) return;
+  for (let i = 0; i < 120; i++) {
+    let d = null;
+    try {
+      const r = await fetch(`/api/lora/${job.id}`);
+      d = await r.json();
+    } catch (e) {}
+    if (d && d.status === "ready") {
+      el.innerHTML = `<a download="orbital_${job.seed}.safetensors" href="${d.url}">` +
+        `lora ${d.rank}r · ${(d.bytes / 1e6).toFixed(1)} MB</a> · ` +
+        `<a download="orbital_${job.seed}.txt" href="/api/lora/${job.id}/txt">details</a>`;
+      return;
+    }
+    if (d && d.status === "error") { el.textContent = "lora failed"; return; }
+    await new Promise((r) => setTimeout(r, 4000));
+  }
+  el.textContent = "lora timed out";
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function paintTimeline() {
+  const total = timeline.reduce((a, c) => a + c.frames / c.fps, 0);
+  $("tlMeta").textContent = `${timeline.length} clip${timeline.length === 1 ? "" : "s"} · ${total.toFixed(1)} s`;
+  $("tlEmpty").style.display = timeline.length ? "none" : "block";
+  [...$("timeline").querySelectorAll(".tlitem")].forEach((n) => n.remove());
+  timeline.forEach((c, i) => {
+    const el = document.createElement("div");
+    el.className = "tlitem";
+    el.innerHTML = `<img src="data:image/jpeg;base64,${c.thumb}" alt="clip ${i + 1}" />` +
+      `<button data-i="${i}" title="remove">×</button>`;
+    $("timeline").appendChild(el);
+  });
+}
+
+$("timeline").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-i]");
+  if (!b) return;
+  timeline.splice(Number(b.dataset.i), 1);
+  paintTimeline();
+});
+
+$("extendBtn").addEventListener("click", async () => {
+  if (!timeline.length) { fail("render a clip first, then extend it."); return; }
+  const last = timeline[timeline.length - 1];
+  initData = `data:image/jpeg;base64,${last.last_frame}`;
+  $("initPreview").src = initData;
+  $("drop").classList.add("has");
+  const im = new Image();
+  im.onload = () => {
+    initRatio = im.width / im.height;
+    $("initMeta").textContent = `${im.width}×${im.height}`;
+    paintSize();
+  };
+  im.src = initData;
+  await runVideo();
+});
+
+$("stitchBtn").addEventListener("click", async () => {
+  if (timeline.length < 2) { fail("stitch needs at least two clips."); return; }
+  $("go").disabled = true;
+  $("status").className = "status";
+  $("status").textContent = `stitching ${timeline.length} clips…`;
+  try {
+    const res = await fetch("/api/video/stitch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clips: timeline.map((c) => c.video), fps: timeline[0].fps || 24 }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    const url = `data:video/mp4;base64,${data.video}`;
+    $("results").innerHTML = `<div class="card wide">
+      <video src="${url}" controls autoplay loop muted playsinline></video>
+      <div class="meta"><span>stitched ${data.clips} clips</span><span>${data.width}×${data.height}</span>
+        <span>${data.fps} fps</span><span>${data.mb} MB</span>
+        <a download="orbital_stitch.mp4" href="${url}">mp4</a></div></div>`;
+    $("status").className = "status";
+    $("status").innerHTML = `<b>stitched</b> · ${data.clips} clips · ${data.mb} MB`;
+  } catch (err) {
+    fail("stitch failed · " + err.message);
+  } finally {
+    $("go").disabled = false;
+  }
+});
+
+var loraStack = [];
+// A profile link carries the character (`/aigf?c=dw-sophia`), never a LoRA name. The server
+// resolves her adapter; the page only mirrors that choice so the disabled select shows it.
+var STUDIO_CHARACTER = (new URLSearchParams(location.search).get("c")
+  || new URLSearchParams(location.search).get("character") || "").trim();
+restore();
+let loraCatalog = {};
+// The admin's house adapters (`studio.json`), shown read-only beside her own.
+let houseLoras = [];
+function applyStudioLora() {
+  const sel = $("styleLora");
+  sel.disabled = true;            // read-only: the adapter is never a visitor choice
+  const house = houseLoras.map((r) => r && r.name).filter(Boolean).join(" + ");
+  const want = STUDIO_CHARACTER
+    ? STUDIO_CHARACTER.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 4)
+    : [];
+  const hit = want.length
+    ? Object.entries(loraCatalog).find(([k, v]) =>
+        v && v.available !== false &&
+        want.some((t) => `${k} ${v.label || ""}`.toLowerCase().includes(t)))
+    : null;
+  sel.value = hit ? hit[0] : "";
+  // Mirror the server's stack so the page states which weights these frames wear; the server
+  // resolves it again on its own and ignores whatever the page would have sent.
+  const spec = hit ? loraCatalog[hit[0]] : null;
+  const mine = spec
+    ? `${spec.label || hit[0]} · ${Number(spec.default_scale == null ? 1 : spec.default_scale).toFixed(2)}`
+    : "";
+  $("studioLoraNote").textContent =
+    [mine, house ? `house: ${house}` : ""].filter(Boolean).join(" + ") || "auto";
+  if (spec && spec.default_scale != null) {
+    $("styleScale").value = spec.default_scale;
+    $("styleVal").textContent = Number(spec.default_scale).toFixed(2);
+  }
+  syncStyle();
+  if (STUDIO_CHARACTER) {
+    $("prompt").placeholder = `Describe the scene for ${STUDIO_CHARACTER.replace(/^dw-/, "")} — her look is fixed.`;
+  }
+}
+
+function paintLoras(d) {
+  loraCatalog = d.custom_loras || {};
+  houseLoras = Array.isArray(d.studio_defaults) ? d.studio_defaults : [];
+  const sel = $("styleLora");
+  setTimeout(applyStudioLora, 0);
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">none</option>';
+  Object.entries(loraCatalog).forEach(([name, v]) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    const trig = v.trigger ? ` · "${v.trigger}"` : "";
+    opt.textContent = (v.available ? v.label : `${v.label} (server will fetch)`) + trig;
+    sel.appendChild(opt);
+  });
+  if (keep) sel.value = keep;
+  paintVideoLoras(d.video_loras || {});
+  syncStyle();
+  paintStack();
+}
+
+let videoLoraCatalog = {};
+function paintVideoLoras(cat) {
+  videoLoraCatalog = cat || {};
+  const sel = $("vlora");
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">none</option>';
+  Object.entries(videoLoraCatalog).forEach(([name, v]) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    const wrongBase = v.models && v.models.length === 0;
+    opt.textContent = `${v.label}${v.available ? "" : " (server will fetch)"}${wrongBase ? " !" : ""}`;
+    sel.appendChild(opt);
+  });
+  if (keep) sel.value = keep;
+  syncVideoLora();
+}
+function syncVideoLora() {
+  const name = $("vlora").value;
+  const spec = videoLoraCatalog[name];
+  $("vloraWrap").style.display = name ? "block" : "none";
+  $("vloraHint").textContent = !name
+    ? ""
+    : spec && spec.models && !spec.models.length
+      ? `trained for ${spec.base}: this pipeline will refuse it`
+      : spec && !spec.available
+        ? "not in the volume yet: the server downloads it on first use"
+        : "";
+}
+function syncStyle() {
+  // Picker, strength slider, stack chips and download buttons stay hidden: her adapter is
+  // resolved from the profile, so there is nothing here a visitor may choose or stack.
+  $("styleWrap").style.display = "none";
+}
+function paintStack() {
+  const box = $("loraStack");
+  if (!box) return;
+  box.innerHTML = loraStack.length
+    ? loraStack
+        .map(
+          (it, i) =>
+            `<span class="chip" data-i="${i}">${escapeHtml(it.name)} @ ${Number(it.scale).toFixed(2)}<b data-rm="${i}" style="margin-left:6px">×</b></span>`
+        )
+        .join("")
+    : '<span class="hint" style="margin:0">no LoRA stacked — generate with one, or add several to combine them</span>';
+  persist();
+}
+function addLora() {
+  const name = $("styleLora").value;
+  if (!name) return;
+  const scale = Number($("styleScale").value);
+  const at = loraStack.findIndex((it) => it.name === name);
+  if (at >= 0) loraStack[at].scale = scale;
+  else loraStack.push({ name, scale });
+  paintStack();
+  syncStyle();
+}
+$("styleAdd").addEventListener("click", addLora);
+$("loraStack").addEventListener("click", (e) => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm) {
+    loraStack.splice(Number(rm.dataset.rm), 1);
+    paintStack();
+    return;
+  }
+  const chip = e.target.closest("[data-i]");
+  if (chip) {
+    const it = loraStack[Number(chip.dataset.i)];
+    if (!it) return;
+    $("styleLora").value = it.name;
+    $("styleScale").value = it.scale;
+    $("styleVal").textContent = Number(it.scale).toFixed(2);
+    syncStyle();
+    persist();
+  }
+});
+async function getLora() {
+  const name = $("styleLora").value;
+  if (!name) return;
+  const btn = $("styleGet");
+  btn.disabled = true;
+  btn.textContent = "downloading…";
+  $("styleMsg").textContent = "the server is fetching the weights — about a minute";
+  try {
+    const r = await fetch("/api/lora/download", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const d = await r.json();
+    if (d.error) {
+      $("styleMsg").textContent = d.error;
+    } else {
+      paintLoras(await (await fetch("/api/info")).json());
+      $("styleMsg").textContent = `${d.file} ready (${d.mb} MB${d.cached ? ", cached" : ""})`;
+    }
+  } catch (e) {
+    $("styleMsg").textContent = "download failed: " + e;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Download LoRA";
+    syncStyle();
+  }
+}
+
+async function saveToken() {
+  const token = $("civitaiToken").value.trim();
+  try {
+    const r = await fetch("/api/lora/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const d = await r.json();
+    $("styleMsg").textContent = d.error
+      ? d.error
+      : d.stored
+        ? `token stored (${d.chars} chars) — press Download LoRA`
+        : "token cleared";
+    if (d.stored) $("civitaiToken").value = "";
+  } catch (e) {
+    $("styleMsg").textContent = "could not save the token: " + e;
+  }
+}
+
+async function getAllLoras() {
+  $("styleMsg").textContent = "the server is downloading every registry LoRA — a few minutes";
+  try {
+    const r = await fetch("/api/lora/download_all", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    const d = await r.json();
+    paintLoras(await (await fetch("/api/info")).json());
+    if (d.error) {
+      $("styleMsg").textContent = d.error;
+    } else {
+      const lines = Object.entries(d).map(([k, v]) =>
+        v.error ? `${k}: ${v.error}` : `${k}: ${v.mb} MB`
+      );
+      $("styleMsg").textContent = lines.join(" · ");
+    }
+  } catch (e) {
+    $("styleMsg").textContent = "download failed: " + e;
+  }
+}
+
+fetch("/api/info")
+  .then((r) => r.json())
+  .then((d) => {
+    if (d.gpu) $("gpu").textContent = `${d.gpu} · ${d.vram_gb} GB` + (d.loaded ? ` · ${d.loaded[0]} loaded` : " · cold");
+    paintLoras(d);
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

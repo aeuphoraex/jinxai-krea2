@@ -1,0 +1,20 @@
+{
+  "slug": "dw-kessa",
+  "name": "Kessa — pilot",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Dock pilot, rust-orange flight suit",
+  "prompt": "jinx_film, a pilot with close-cropped dark hair in a rust-orange flight suit, standing in a hangar bay, hard key light from the left, 35mm film, shallow depth of field",
+  "seed": 2107,
+  "aspect": "4:5",
+  "thumb": "/api/market/thumb/dw-kessa",
+  "weights": "per_image/kessa.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900000,
+  "rating": "sfw"
+}

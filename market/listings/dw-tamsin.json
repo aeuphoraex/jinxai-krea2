@@ -1,0 +1,20 @@
+{
+  "slug": "dw-tamsin",
+  "name": "Tamsin — officer",
+  "seller": "JINXAI",
+  "price_cents": 1900,
+  "currency": "usd",
+  "tier": "character",
+  "description": "Signals officer, cold blue console glow",
+  "prompt": "jinx_film, a signals officer with a shaved head in a dark console room, cold blue monitor glow on her face, editorial studio, sharp focus",
+  "seed": 5520,
+  "aspect": "4:5",
+  "thumb": "/api/market/thumb/dw-tamsin",
+  "weights": "per_image/tamsin.safetensors",
+  "weights_sha256": "",
+  "capabilities": [
+    "image"
+  ],
+  "signed_at": 1794900007,
+  "rating": "sfw"
+}
