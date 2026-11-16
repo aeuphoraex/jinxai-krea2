@@ -9,6 +9,7 @@ fp8_scaled checkpoint carrying `<name>_scale` entries fails the job unless it is
 first. That arithmetic is exercised against fake tensors, exactly as `app.py::_dequant` does it.
 
     python deploy/runpod/selftest.py
+    python deploy/runpod/preflight.py                         # the pinned test GPU has stock
     python deploy/runpod/selftest.py --remote                 # checkpoint reachable without a token
     python deploy/runpod/selftest.py --live --endpoint <id>   # one real job, needs the key
 """
@@ -17,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib.util
 import json
 import os
 import re
@@ -247,6 +249,7 @@ POOL_VRAM = {"AMPERE_16": 16, "AMPERE_24": 24, "ADA_24": 24, "ADA_32_PRO": 32, "
 POOL_DEVICES = {
     "AMPERE_24": ("NVIDIA L4", "NVIDIA RTX A5000", "NVIDIA GeForce RTX 3090"),
     "ADA_24": ("NVIDIA GeForce RTX 4090",),
+    "ADA_32_PRO": ("NVIDIA GeForce RTX 5090",),
     "AMPERE_48": ("NVIDIA A40", "NVIDIA RTX A6000"),
     "ADA_48_PRO": ("NVIDIA L40", "NVIDIA L40S", "NVIDIA RTX 6000 Ada Generation"),
 }
@@ -301,6 +304,13 @@ def hub_config() -> None:
     check("test device can hold the renderer",
           [pool for pool, devs in POOL_DEVICES.items() if device in devs
            and POOL_VRAM.get(pool, 0) * 1_000_000_000 < L.pool_floor_bytes()], [])
+    # The pin is 32 GB on purpose: the renderer and the encoder never co-reside there, so this Hub
+    # run is the only hardware proof of `lowvram`'s streamed path. Pinning a 48 GB card again would
+    # quietly drop that coverage, which is why the tier is asserted rather than left to the string.
+    test_pool = next((pool for pool, devs in POOL_DEVICES.items() if device in devs), "")
+    check("the pinned test card is the 32 GB tier", POOL_VRAM.get(test_pool), 32)
+    check("and the renderer's measured floor fits it", L.pool_floor_bytes() < 32_000_000_000,
+          True)
 
     # `checkpoint.fetch` refuses to guess between several safetensors files by design, so a
     # remote source has to name one. `krea/Krea-2-Turbo` ships six, and a bare repo id made the
@@ -338,10 +348,68 @@ def hub_config() -> None:
           bool([v for v in allowed if v > floor]), True)
 
 
+# `product=POD` as measured on 2026-11-16, trimmed to the cards that matter here: the A40 pin
+# that shipped a sold-out release, its two same-class fallbacks, and the 5090 pin.
+CATALOG = (
+    {"id": "NVIDIA A40", "displayName": "A40", "memoryInGb": 48, "availability": "NONE",
+     "cudaVersions": [{"version": "12.8", "available": False},
+                      {"version": "13.2", "available": True}]},
+    {"id": "NVIDIA L40", "displayName": "L40", "memoryInGb": 48, "availability": "NONE",
+     "cudaVersions": [{"version": "13.2", "available": True}]},
+    {"id": "NVIDIA RTX A6000", "displayName": "RTX A6000", "memoryInGb": 48,
+     "availability": "NONE", "cudaVersions": [{"version": "13.2", "available": True}]},
+    {"id": "NVIDIA GeForce RTX 5090", "displayName": "RTX 5090", "memoryInGb": 32,
+     "availability": "LOW",
+     "cudaVersions": [{"version": "13.0", "available": False},
+                      {"version": "13.2", "available": True}]},
+)
+
+
+def preflight_checks() -> None:
+    """The release gate, against the measured catalog rather than the live one.
+
+    v0.1.11 shipped an A40 pin to a class that was entirely `NONE`, and the Hub said so only
+    minutes later; every check in here is a way that release should have been stopped locally.
+    """
+    # Imported by path: the repo root already carries a `preflight.py` (the Modal image check) and
+    # the root sits ahead of this directory on sys.path, so a plain `import preflight` loads that
+    # module instead and fails with `no attribute 'gate'`.
+    spec = importlib.util.spec_from_file_location(
+        "runpod_preflight", os.path.join(HERE, "preflight.py"))
+    P = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(P)
+
+    print("\nthe release gate reads stock before a tag is published")
+    sold_out = P.gate(CATALOG, "NVIDIA A40", ["13.2", "13.0"])
+    check("a sold-out class fails the gate", sold_out["ok"], False)
+    check("and the reason names the whole class",
+          sorted(row["name"] for row in sold_out["class"]),
+          ["NVIDIA L40", "NVIDIA RTX A6000"])
+    check("the 5090 pin passes", P.gate(CATALOG, "NVIDIA GeForce RTX 5090", ["13.2"])["ok"],
+          True)
+    check("the catalog's short display name resolves",
+          P.gate(CATALOG, "RTX 5090", ["13.2"])["ok"], True)
+    # An exact per-host CUDA match is the other outage that shipped: instances exist, none of them
+    # report a driver in the list, and the build reads as "no capacity".
+    check("a card whose driver is outside the list fails",
+          P.gate(CATALOG, "NVIDIA GeForce RTX 5090", ["12.6"])["ok"], False)
+    check("an unknown device fails", P.gate(CATALOG, "NVIDIA L40X", ["13.2"])["ok"], False)
+
+    # The pin being dry is not a failure on its own: the Hub falls back within the class, which is
+    # how the A40 error named two cards we never asked for. The gate has to accept what the Hub
+    # would accept, and say that the test will run somewhere else.
+    live = [dict(row) for row in CATALOG]
+    live[1]["availability"] = "LOW"        # the L40 is up, the A40 and the A6000 are not
+    parked = P.gate(live, "NVIDIA A40", ["13.2"])
+    check("a dry pin with a live class peer passes", parked["ok"], True)
+    check("and reports that the test would run on the peer", bool(parked["warnings"]), True)
+
+
 def offline() -> int:
     import checkpoint as C
 
     hub_config()
+    preflight_checks()
 
     print("checkpoint naming")
     check("safetensors -> .bf16", C.target_for("w/krea2_fp8_scaled.safetensors"),

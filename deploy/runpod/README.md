@@ -88,9 +88,10 @@ On 2026-11-16 `NVIDIA A40`, `NVIDIA L40`, `NVIDIA RTX A6000` and `NVIDIA RTX 600
 all reported `availability: NONE`, while the same A40 was `MEDIUM` on `product=SERVERLESS`: the two
 products are different fleets, so a Pod pin can never be read off the Serverless view. What had
 stock was `NVIDIA L40S` (48 GB, 13.2), `NVIDIA GeForce RTX 5090` (32 GB, 13.0/13.2) and
-`NVIDIA A100 SXM` (80 GB, 13.2). `tests.json` pins the **L40S**: it sits in `ADA_48_PRO`, it is the
-only 48 GB card with stock, and 48 GB keeps the encoder resident, so the test exercises the loader
-rather than the streaming path.
+`NVIDIA A100 SXM` (80 GB, 13.2). `tests.json` pins the **RTX 5090**, deliberately: at 32 GB the
+encoder cannot stay on the card, so the Hub's own test job is the only hardware proof of
+`lowvram.py`'s streamed path — the one thing the offline suite cannot check. The L40S stays the
+safer pin for a release that must not fail (48 GB, encoder resident), and it is one string away.
 
 The pin matters more than it looks, because `tests.json` accepts exactly one `gpuTypeId` and the
 Hub picks its own same-class fallbacks from it. For the old A40 pin those fallbacks were
@@ -107,7 +108,24 @@ of weights before a single activation. `krea2.inference._pipeline` moves all thr
 the smallest card that could run a job was a 48 GB one, and `hub.json` was advertising `AMPERE_24`
 and `ADA_24` pools that die in `_pipeline` on the first job: the DiT alone is larger than the card.
 No arrangement of the encoder fixes that, which is why those pools are gone rather than tuned, and
-what `tests.json` pins a 48 GB card (`NVIDIA L40S`) for instead.
+why `tests.json` pins the 32 GB tier (`NVIDIA GeForce RTX 5090`): streaming is what makes a 32 GB
+card sellable at all, so it is the path the Hub test should be exercising.
+
+## Release gate: stock is checked before a tag, not after
+
+`deploy/runpod/preflight.py` reads `product=POD`, resolves the pin from `.runpod/tests.json`, lists
+its same-VRAM class, and refuses when no card in that class has instances with a driver in
+`allowedCudaVersions`:
+
+```bash
+python deploy/runpod/preflight.py --release v0.1.13 --notes-file out/notes.md
+```
+
+Without `--release` it is read-only. With it, the tag, the push and `gh release create` run only
+after the gate passes — and it refuses a tag whose `.runpod/tests.json` is uncommitted, because
+the Hub reads the tag and would test the previous pin while the gate looked green. v0.1.11 shipped
+exactly that mistake one step later: a sold-out A40 pin, with the Hub's error arriving minutes
+after publication instead of before it.
 
 `lowvram.py` decides from the free VRAM left after the loader has run:
 

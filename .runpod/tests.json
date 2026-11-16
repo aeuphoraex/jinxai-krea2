@@ -19,7 +19,7 @@
     }
   ],
   "config": {
-    "gpuTypeId": "NVIDIA L40S",
+    "gpuTypeId": "NVIDIA GeForce RTX 5090",
     "gpuCount": 1,
     "env": [
       {
