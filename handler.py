@@ -20,6 +20,12 @@ Schedule is pinned at 8 steps / CFG 0: the core is distilled for it, and a calle
 able to ask for another one — the same rule the paid rail enforces. Weights come from the
 network volume via `OSS_TURBO`, loaded once per worker and reused while it stays warm.
 
+A 48 GB card holds the DiT, the Qwen3-VL encoder and the VAE at once (34.3 GB of weights). A
+32 GB card does not, and the DiT alone is 26.28 GB, so once the renderer is loaded the encoder
+is parked on the CPU and streamed through the GPU for each prompt (`deploy/runpod/lowvram.py`).
+That is what makes a 32 GB pool usable at all; the render is identical either way, because the
+sampler takes the conditioning the encode produced.
+
 The age rule is enforced here, before any GPU work, using `orbit_guard` directly so the public
 host cannot drift from the private one. The negative prompt is unnecessary at CFG 0 and is
 therefore not sent.
@@ -34,14 +40,15 @@ import pathlib
 import sys
 import time
 
-# `checkpoint.py` sits beside the worker sources in `deploy/runpod/` in the repository and at
-# `/opt/checkpoint.py` inside the image. Adding the repository folder to the path keeps this one
-# file runnable from either place, so `python handler.py` behaves the way RunPod's worker
-# template does.
+# `checkpoint.py` and `lowvram.py` sit beside the worker sources in `deploy/runpod/` in the
+# repository and at `/opt/*.py` inside the image. Adding the repository folder to the path keeps
+# this one file runnable from either place, so `python handler.py` behaves the way RunPod's
+# worker template does.
 _DEPLOY = pathlib.Path(__file__).resolve().parent / "deploy" / "runpod"
 if _DEPLOY.is_dir():
     sys.path.insert(0, str(_DEPLOY))
 
+import lowvram  # noqa: E402
 import orbit_guard  # noqa: E402
 import runpod  # noqa: E402
 from checkpoint import materialize  # noqa: E402
@@ -58,8 +65,25 @@ TEST_INPUT = {"prompt": os.environ.get("TEST_PROMPT") or "a portrait, window lig
 JOB_TIMEOUT = 600
 
 
+def free_vram() -> int:
+    """VRAM available right now, or 0 when there is no device to ask."""
+    try:
+        import torch
+
+        free, _ = torch.cuda.mem_get_info()
+        return int(free)
+    except Exception:                       # noqa: BLE001 - no device, no measurement
+        return 0
+
+
 def pipeline():
-    """Load MMDiT + conditioner + VAE once per worker; 12 GB of weights is not per-job work."""
+    """Load MMDiT + conditioner + VAE once per worker; 12 GB of weights is not per-job work.
+
+    How the encoder is kept decides which cards can run a job. A card with room for it beside
+    the renderer keeps it where `_pipeline` put it; a card without room gets it parked, and
+    `handler` streams it per prompt. The decision is made from free VRAM *after* the loader has
+    run, because that is the only reading that reflects what the renderer actually took.
+    """
     if not STATE:
         import inference as K
 
@@ -67,8 +91,15 @@ def pipeline():
         K.checkpoints["oss_turbo"] = source
         started = time.time()
         dit, ae, encoder = K._pipeline(checkpoint="oss_turbo")
-        STATE.update(dit=dit, ae=ae, encoder=encoder, loaded=round(time.time() - started, 1))
-        print(f"[runpod] weights loaded in {STATE['loaded']}s")
+        layers = lowvram.decoder_layers(encoder)
+        mode = "resident"
+        if layers and lowvram.strategy(free_vram()) == "streamed":
+            mode = "streamed"
+            lowvram.park(encoder)
+        STATE.update(dit=dit, ae=ae, encoder=encoder, layers=layers, mode=mode,
+                     loaded=round(time.time() - started, 1))
+        print(f"[runpod] weights loaded in {STATE['loaded']}s, encoder {mode} "
+              f"({len(layers)} layers, {free_vram() / 1e9:.1f} GB free)")
     return STATE["dit"], STATE["ae"], STATE["encoder"]
 
 
@@ -110,9 +141,18 @@ def handler(job: dict) -> dict:
 
     dit, ae, encoder = pipeline()
     started = time.time()
+
+    # On a streamed worker the encode is the only part of the job that needs the encoder, so it
+    # happens first, against the renderer's already-resident weights, and the conditioning is
+    # handed to the sampler. The encode stays inside `seconds` for the same reason the resident
+    # path does: it is work this job made the GPU do.
+    text = None
+    if STATE.get("mode") == "streamed":
+        text = lowvram.encode(encoder, STATE.get("layers") or [], lambda: encoder([prompt]))
+
     images = sample(
         dit, ae, encoder, [prompt],
-        width=width, height=height, steps=STEPS, guidance=CFG, seed=seed,
+        width=width, height=height, steps=STEPS, guidance=CFG, seed=seed, text=text,
     )
     seconds = round(time.time() - started, 2)
 

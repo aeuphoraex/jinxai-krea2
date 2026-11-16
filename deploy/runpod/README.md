@@ -36,7 +36,7 @@ model files come from a RunPod network volume mounted at `/runpod-volume`. Uploa
 
 ## Create the endpoint
 
-Console → Serverless → New Endpoint → your image, GPU **24 GB or larger**, container disk ≥ 20 GB,
+Console → Serverless → New Endpoint → your image, GPU **32 GB or larger**, container disk ≥ 60 GB,
 network volume attached, env:
 
 | Variable | Value |
@@ -84,6 +84,35 @@ Also current as of the same read: `NVIDIA RTX A6000` and `NVIDIA L40` had **no**
 either product. They remain inside `AMPERE_48` / `ADA_48_PRO`, so the pools keep them as future
 targets, but a test pinned to one named device has to name a device that is up — today the A40,
 the L40S or the RTX 6000 Ada, all at 13.2.
+
+## 32 GB cards: the encoder is parked, not co-resident
+
+Measured from the published files' own headers: the Turbo DiT loads at **26.28 GB** (25.0 GB bf16
+plus 1.29 GB float32 scalars), the Qwen-Image VAE at 0.25 GB and Qwen3-VL-4B at 8.88 GB — 34.3 GB
+of weights before a single activation. `krea2.inference._pipeline` moves all three to the GPU, so
+the smallest card that could run a job was a 48 GB one, and `hub.json` was advertising `AMPERE_24`
+and `ADA_24` pools that die in `_pipeline` on the first job: the DiT alone is larger than the card.
+No arrangement of the encoder fixes that, which is why those pools are gone rather than tuned, and
+what `tests.json` pins an A40 for instead.
+
+`lowvram.py` decides from the free VRAM left after the loader has run:
+
+- **`resident`** — a 48 GB card holds both, so nothing moves. Byte for byte the old behaviour.
+- **`streamed`** — the encoder is parked on the CPU and one decoder layer at a time is moved
+  through the GPU for the length of one prompt encode. The peak becomes the renderer plus the
+  encoder's small non-layer modules (`embed_tokens` 0.78 GB, visual tower 0.83 GB) and a single
+  201.9 MB layer, instead of all 8.88 GB at once. It costs 8.88 GB of PCIe traffic per prompt
+  (~0.4 s at PCIe 4.0 x16), and only while the encoder runs. The 36-layer stack is found by shape
+  — the largest run of same-class children — so this does not depend on a `transformers`
+  attribute name that a version bump can rename.
+
+The render is unchanged: `sampling.sample` already takes pre-computed conditioning (`text=`), so
+the handler encodes first and hands it to the sampler. `selftest.py` checks the strategy
+thresholds, the layer discovery, that a layer is on the card for its own forward and off it
+afterwards, that no hook survives the encode, that a failed encode still parks the encoder, and
+that every pool `hub.json` advertises holds `pool_floor_bytes()` (28.5 GB) — which is 32 GB and up.
+
+The streamed path is proven offline; one live job on a 32 GB endpoint is what proves it on a card.
 
 ## Cold start is the whole cost argument
 

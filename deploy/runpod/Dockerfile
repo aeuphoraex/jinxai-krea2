@@ -42,6 +42,7 @@ COPY krea2/ /opt/krea2/
 # One source of truth for the age rule: the same module the Modal worker imports.
 COPY orbit_guard.py /opt/orbit_guard.py
 COPY deploy/runpod/checkpoint.py /opt/checkpoint.py
+COPY deploy/runpod/lowvram.py /opt/lowvram.py
 COPY handler.py /opt/handler.py
 
 WORKDIR /opt

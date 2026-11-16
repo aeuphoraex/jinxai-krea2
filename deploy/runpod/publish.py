@@ -29,15 +29,17 @@ import urllib.request
 
 BASE = "https://rest.runpod.io/v1"
 
-# 24 GB is the measured floor for stock Krea 2 fp8: 12.3 GB DiT + 4.9 GB encoder + VAE. H100
-# is deliberately absent — this host draws commodity frames, and an H100 there costs more than
-# the H100 it is meant to replace.
+# 32 GB is the measured floor, and it is measured rather than estimated: the DiT loads at
+# 26.28 GB (the fp8 file is dequantised to bf16 on first load), the VAE takes 0.25 GB, which is
+# 28.5 GB before a single activation. A 24 GB pool cannot hold the DiT at all, however the
+# encoder is handled — see lowvram.py for what a 32 GB card needs. H100 is deliberately absent:
+# this host draws commodity frames, and an H100 there costs more than the H100 it replaces.
 #
 # Pool IDs, not device names: a serverless endpoint selects hardware by pool ("AMPERE_24" =
 # L4 / A5000 / 3090), and that is all `saveEndpoint` accepts. Device names such as "NVIDIA L4"
 # are a different identifier space and belong only in a Pod request — which is what
 # `.runpod/tests.json` builds, hence the device name there. Order is the rent priority.
-DEFAULT_GPUS = ("AMPERE_48", "AMPERE_24", "ADA_24")
+DEFAULT_GPUS = ("AMPERE_48", "ADA_48_PRO", "ADA_32_PRO")
 
 # RunPod matches allowedCudaVersions exactly against the host driver, so the list has to be
 # both wide enough to find a machine and no wider than this image can actually start on. Wide

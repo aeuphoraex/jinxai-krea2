@@ -62,6 +62,122 @@ class FakeTensor:
 FAKE_TORCH = types.SimpleNamespace(bfloat16="bf16", float32="f32")
 
 
+class FakeParam:
+    """One parameter: a count and a dtype width are all `tensor_bytes` needs."""
+
+    def __init__(self, count: int = 1, device: str = "cpu"):
+        self.count, self.device = count, device
+        self.data = self
+
+    def numel(self) -> int:
+        return self.count
+
+    def element_size(self) -> int:
+        return 2
+
+    def to(self, device):
+        self.device, self.data = device, self
+        return self
+
+
+class FakeHandle:
+    def __init__(self, bucket: list, fn):
+        self.bucket, self.fn = bucket, fn
+
+    def remove(self):
+        if self.fn in self.bucket:
+            self.bucket.remove(self.fn)
+
+
+class FakeModule:
+    """A module tree with the surface `lowvram` touches, and no torch.
+
+    `place` is where a module's weights are; `at_forward` records where they were when its
+    forward actually ran, which is the property the streaming has to get right.
+    """
+
+    def __init__(self, *children, params: int = 1):
+        self._kids = list(children)
+        self._params = [FakeParam() for _ in range(params)]
+        self._pre, self._post = [], []
+        self.place = "cpu"
+        self.at_forward = None
+        self.moves = 0
+
+    def children(self):
+        return iter(self._kids)
+
+    def modules(self):
+        yield self
+        for kid in self._kids:
+            yield from kid.modules()
+
+    def parameters(self, recurse: bool = True):
+        yield from self._params
+        if recurse:
+            for kid in self._kids:
+                yield from kid.parameters()
+
+    def buffers(self, recurse: bool = True):
+        return iter(())
+
+    def register_forward_pre_hook(self, fn):
+        self._pre.append(fn)
+        return FakeHandle(self._pre, fn)
+
+    def register_forward_hook(self, fn):
+        self._post.append(fn)
+        return FakeHandle(self._post, fn)
+
+    def to(self, device):
+        self.place, self.moves = device, self.moves + 1
+        for param in self._params:
+            param.to(device)
+        for kid in self._kids:
+            kid.to(device)
+        return self
+
+    def __call__(self, value):
+        for fn in list(self._pre):
+            fn(self, (value,))
+        self.at_forward = self.place
+        out = self.forward(value)
+        for fn in list(self._post):
+            fn(self, (value,), out)
+        return out
+
+    def forward(self, value):
+        return value
+
+
+class Layer(FakeModule):
+    """A decoder layer: its own class, so a stack is homogeneous and its parent is not."""
+
+
+class Holder(FakeModule):
+    """A stack of layers: it calls each layer in order, the way a decoder stack does."""
+
+    def forward(self, value):
+        for kid in self._kids:
+            value = kid(value)
+        return value
+
+
+class Encoder(FakeModule):
+    """The conditioner's outer module: embeddings, then the stack, then the head."""
+
+    def forward(self, value):
+        for kid in self._kids:
+            value = kid(value)
+        return value
+
+
+def fake_encoder(depth: int = 3, width: int = 5):
+    """`(encoder, stack)`, shaped like Qwen3-VL: an embedding, a decoder stack and a head."""
+    stack = Holder(*[Layer(params=width) for _ in range(depth)])
+    return Encoder(Layer(params=7), stack, Layer(params=1)), stack
+
+
 def stubs(width: int, height: int) -> dict:
     """Install the modules the handler imports, answering the real shapes.
 
@@ -76,12 +192,19 @@ def stubs(width: int, height: int) -> dict:
     inference = types.ModuleType("inference")
     inference.checkpoints = {"oss_turbo": os.environ.get("OSS_TURBO")}
     calls: dict = {"pipeline": [], "sample": []}
+    # The handler asks torch how much VRAM is left before deciding whether the encoder may stay on
+    # the card. 2 GB free is a 32 GB card with the renderer loaded: the streamed path.
+    torch = types.ModuleType("torch")
+    torch.cuda = types.SimpleNamespace(mem_get_info=lambda: (2_000_000_000, 34_359_738_368),
+                                      empty_cache=lambda: None)
+    sys.modules["torch"] = torch
+    calls["encoder"], calls["stack"] = fake_encoder()
 
     def _pipeline(checkpoint="oss_turbo"):
         calls["pipeline"].append(checkpoint)
         if not inference.checkpoints.get(checkpoint):
             raise RuntimeError("checkpoint path is empty — OSS_TURBO was not set")
-        return ("dit", "ae", "encoder")
+        return ("dit", "ae", calls["encoder"])
 
     inference._pipeline = _pipeline
     sys.modules["inference"] = inference
@@ -89,7 +212,8 @@ def stubs(width: int, height: int) -> dict:
     sampling = types.ModuleType("sampling")
 
     def sample(model, ae, encoder, prompts, **kw):
-        calls["sample"].append((int(kw["width"]), int(kw["height"])))
+        calls["sample"].append({"size": (int(kw["width"]), int(kw["height"])),
+                                "text": kw.get("text")})
         return [Image.new("RGB", (int(kw["width"]), int(kw["height"])), (40, 20, 60))]
 
     sampling.sample = sample
@@ -99,6 +223,12 @@ def stubs(width: int, height: int) -> dict:
 
 POOLS = {"AMPERE_16", "AMPERE_24", "ADA_24", "ADA_32_PRO", "AMPERE_48", "ADA_48_PRO",
          "AMPERE_80", "ADA_80_PRO", "BLACKWELL_96", "HOPPER_141", "BLACKWELL_180"}
+
+# VRAM per serverless pool, from RunPod's GPU catalog. An advertised pool is checked against the
+# renderer's measured footprint, not against how much spare room a card happens to have.
+POOL_VRAM = {"AMPERE_16": 16, "AMPERE_24": 24, "ADA_24": 24, "ADA_32_PRO": 32, "BLACKWELL_32": 32,
+             "AMPERE_48": 48, "ADA_48_PRO": 48, "AMPERE_80": 80, "ADA_80_PRO": 80,
+             "BLACKWELL_96": 96, "HOPPER_141": 141, "BLACKWELL_180": 180}
 
 # Only the pools this listing advertises; a test pod on hardware we do not offer proves nothing.
 POOL_DEVICES = {
@@ -125,6 +255,13 @@ def hub_config() -> None:
     print("the Hub configs name the right kind of GPU")
     wanted = [p.strip() for p in str(hub.get("gpuIds") or "").split(",") if p.strip()]
     check("hub.json gpuIds are pool IDs", [p for p in wanted if p not in POOLS], [])
+
+    # The DiT alone is 26.28 GB, so a 24 GB pool cannot load this worker however the encoder is
+    # handled — it dies in `_pipeline` on the first job. `pool_floor_bytes()` is measured from the
+    # published files rather than guessed, which is what keeps a 24 GB tier from coming back.
+    import lowvram as L
+    check("every advertised pool holds the renderer",
+          [p for p in wanted if POOL_VRAM.get(p, 0) * 1_000_000_000 < L.pool_floor_bytes()], [])
     device = str(tests.get("gpuTypeId") or "")
     check("tests.json gpuTypeId is not a pool ID", device.upper() in POOLS, False)
     check("tests.json gpuTypeId names a device", device.startswith("NVIDIA "), True)
@@ -268,6 +405,43 @@ def offline() -> int:
         ambiguous = "ambiguous" if "name one as" in str(err) else str(err)
     check("fetch refuses to guess between two checkpoints", ambiguous, "ambiguous")
 
+    print("\nthe encoder is offloaded instead of co-resident on a 32 GB card")
+    import lowvram as L
+    check("a card with room keeps the encoder resident", L.strategy(19_000_000_000), "resident")
+    check("a 32 GB card with the renderer loaded streams it", L.strategy(3_000_000_000),
+          "streamed")
+    check("an unreadable device streams it", L.strategy(0), "streamed")
+    check("the measured floor fits a 32 GB card", L.pool_floor_bytes() < 32_000_000_000, True)
+    check("and does not fit a 24 GB one", L.pool_floor_bytes() > 24_000_000_000, True)
+
+    root, stack = fake_encoder()
+    check("the decoder stack is identified by size", L.decoder_layers(root), stack._kids)
+    seen: dict = {}
+
+    def encode_run():
+        seen["places"] = [kid.place for kid in root._kids]
+        return root("prompt")          # a real forward, so the hooks have to fire
+
+    got = L.encode(root, stack._kids, encode_run, device="cuda", park_device="cpu",
+                   free=lambda: None, log=lambda *_: None)
+    check("encode hands back what the run returned", got, "prompt")
+    check("the embedding table is on the card during the encode", seen["places"][0], "cuda")
+    check("the stack holder itself never goes up", seen["places"][1], "cpu")
+    check("each layer is on the card for its own forward",
+          [layer.at_forward for layer in stack._kids], ["cuda"] * 3)
+    check("and off it once its forward returns", [layer.place for layer in stack._kids],
+          ["cpu"] * 3)
+    stack._kids[0]("probe")
+    check("no hook survives the encode", stack._kids[0].place, "cpu")
+    try:
+        L.encode(root, stack._kids, lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+                 device="cuda", park_device="cpu", free=lambda *_: None, log=lambda *_: None)
+        boom = "no error"
+    except RuntimeError:
+        boom = "raised"
+    check("a failed encode still parks the encoder",
+          (boom, [layer.place for layer in stack._kids]), ("raised", ["cpu"] * 3))
+
     print("\nthe handler answers in the deployment's shape")
     os.environ["OSS_TURBO"] = os.path.join(HERE, "fake.bf16.safetensors")
     calls = stubs(1280, 1600)
@@ -284,6 +458,12 @@ def offline() -> int:
     first = (out.get("images") or [{}])[0]
     check("size echoed", (first.get("width"), first.get("height")), (1280, 1600))
     check("seed echoed", first.get("seed"), 11)
+    # A streamed worker encodes the prompt itself and hands the conditioning over, then parks the
+    # stack again because the renderer needs the card.
+    check("the sampler got pre-computed conditioning",
+          calls["sample"][0].get("text") is not None, True)
+    check("the decoder stack is parked for the render",
+          [layer.place for layer in calls["stack"]._kids], ["cpu"] * 3)
     check("data is a png data uri", str(first.get("data"))[:22], "data:image/png;base64,")
     check("decodes to a png", base64.b64decode(first["data"].split(",", 1)[-1])[:8],
           b"\x89PNG\r\n\x1a\n")
