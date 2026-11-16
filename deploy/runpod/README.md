@@ -54,8 +54,11 @@ python -c "import orbit_engine as E; c=E.RunPod(); print(c.wait(c.create({'promp
 
 ## Capacity: `allowedCudaVersions` is an exact match, per host
 
-`GET /v2/catalog/gpus?include=AVAILABILITY&product=SERVERLESS` (Bearer key) returns every GPU
-with an `availability` and a `cudaVersions` array whose entries carry their own `available` flag.
+`GET https://api.runpod.io/v2/catalog/gpus?include=AVAILABILITY&product=SERVERLESS` (Bearer key)
+returns every GPU with an `availability` and a `cudaVersions` array whose entries carry their own
+`available` flag. Use that host: `rest.runpod.io/v2/...` 301s to the API docs page, and `curl -L`
+then stores an HTML page with a 200, which reads like a successful catalog call and parses as
+nothing.
 On 2026-11-16 the A40 read:
 
 ```json
@@ -80,10 +83,21 @@ Two rules follow, and the old list broke the second one:
   deployed driver. `product=POD` is what `tests.json` schedules on; `product=SERVERLESS` is what
 the listing deploys.
 
-Also current as of the same read: `NVIDIA RTX A6000` and `NVIDIA L40` had **no** availability in
-either product. They remain inside `AMPERE_48` / `ADA_48_PRO`, so the pools keep them as future
-targets, but a test pinned to one named device has to name a device that is up — today the A40,
-the L40S or the RTX 6000 Ada, all at 13.2.
+A later read with `product=POD` — which is the fleet a Hub **test pod** schedules on — is blunter.
+On 2026-11-16 `NVIDIA A40`, `NVIDIA L40`, `NVIDIA RTX A6000` and `NVIDIA RTX 6000 Ada Generation`
+all reported `availability: NONE`, while the same A40 was `MEDIUM` on `product=SERVERLESS`: the two
+products are different fleets, so a Pod pin can never be read off the Serverless view. What had
+stock was `NVIDIA L40S` (48 GB, 13.2), `NVIDIA GeForce RTX 5090` (32 GB, 13.0/13.2) and
+`NVIDIA A100 SXM` (80 GB, 13.2). `tests.json` pins the **L40S**: it sits in `ADA_48_PRO`, it is the
+only 48 GB card with stock, and 48 GB keeps the encoder resident, so the test exercises the loader
+rather than the streaming path.
+
+The pin matters more than it looks, because `tests.json` accepts exactly one `gpuTypeId` and the
+Hub picks its own same-class fallbacks from it. For the old A40 pin those fallbacks were
+`NVIDIA RTX A6000` and `NVIDIA L40` — precisely the two cards at `NONE` — so the build failed with
+"no instances available … nor on any of the fallback GPUs" while three other cards had stock. A
+pin is only as schedulable as its own class, so re-read `product=POD` before naming a device, and
+name one whose class is up, not merely one that is up.
 
 ## 32 GB cards: the encoder is parked, not co-resident
 
@@ -93,7 +107,7 @@ of weights before a single activation. `krea2.inference._pipeline` moves all thr
 the smallest card that could run a job was a 48 GB one, and `hub.json` was advertising `AMPERE_24`
 and `ADA_24` pools that die in `_pipeline` on the first job: the DiT alone is larger than the card.
 No arrangement of the encoder fixes that, which is why those pools are gone rather than tuned, and
-what `tests.json` pins an A40 for instead.
+what `tests.json` pins a 48 GB card (`NVIDIA L40S`) for instead.
 
 `lowvram.py` decides from the free VRAM left after the loader has run:
 

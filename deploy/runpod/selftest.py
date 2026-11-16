@@ -296,6 +296,11 @@ def hub_config() -> None:
     check("test device belongs to an advertised pool",
           [dev for pool, devs in POOL_DEVICES.items() if pool in wanted for dev in devs
            if dev == device], [device])
+    # …and that card must hold the renderer, or the pin only moves the failure from the Hub's
+    # scheduler to `_pipeline` on the first test job.
+    check("test device can hold the renderer",
+          [pool for pool, devs in POOL_DEVICES.items() if device in devs
+           and POOL_VRAM.get(pool, 0) * 1_000_000_000 < L.pool_floor_bytes()], [])
 
     # `checkpoint.fetch` refuses to guess between several safetensors files by design, so a
     # remote source has to name one. `krea/Krea-2-Turbo` ships six, and a bare repo id made the

@@ -19,7 +19,7 @@
     }
   ],
   "config": {
-    "gpuTypeId": "NVIDIA A40",
+    "gpuTypeId": "NVIDIA L40S",
     "gpuCount": 1,
     "env": [
       {
