@@ -24,7 +24,7 @@
     "env": [
       {
         "key": "OSS_TURBO",
-        "value": "Comfy-Org/Krea-2::diffusion_models/krea2_turbo_fp8_scaled.safetensors"
+        "value": "Comfy-Org/Krea-2::diffusion_models/krea2_turbo_bf16.safetensors"
       },
       {
         "key": "HF_HOME",

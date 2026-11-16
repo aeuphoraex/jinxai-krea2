@@ -13,6 +13,11 @@ Two rules keep it honest:
 * **The result is cached beside the source**, as `<name>.bf16.safetensors`, so the ~12 GB
   rewrite is paid once per volume rather than once per cold worker.
 
+Which of those applies is decided from the safetensors **header**, not from the weights. A
+26.28 GB bf16 repack used to be loaded in full just to discover it carried no scales; the header
+answers that for about a megabyte of reads, and on a worker with a GPU-sized amount of RAM the
+difference is the whole model.
+
 Pure Python apart from the optional torch/safetensors imports inside `materialize`, which are
 injectable so the arithmetic can be checked without a GPU or the real libraries.
 """
@@ -31,6 +36,11 @@ MIN_BYTES = 1_000_000_000
 def needs_dequant(state: dict) -> bool:
     """True when the checkpoint carries ComfyUI per-tensor scales."""
     return any(str(k).endswith("_scale") for k in (state or {}))
+
+
+def needs_dequant_keys(keys) -> bool:
+    """`needs_dequant` for a bare list of tensor names, as read from a header."""
+    return any(str(k).endswith("_scale") for k in (keys or ()))
 
 
 def target_for(path: str) -> str:
@@ -108,6 +118,19 @@ def fetch(source: str, cache_dir: str = "", hf=None, log=print) -> str:
     )
 
 
+def source_keys(path: str, safe_open=None) -> list:
+    """Tensor names in a safetensors file, from its header alone.
+
+    `safe_open` reads the JSON header and leaves the tensor data on disk, so this costs about a
+    megabyte however large the checkpoint is. That is what makes "does this need converting"
+    answerable without holding 26 GB of weights in RAM first.
+    """
+    if safe_open is None:
+        from safetensors import safe_open  # type: ignore
+    with safe_open(str(path), framework="pt") as handle:
+        return list(handle.keys())
+
+
 def dequant(state: dict, torch_mod) -> dict:
     """ComfyUI single-file fp8_scaled (weight + per-tensor scale) -> plain bf16.
 
@@ -121,12 +144,13 @@ def dequant(state: dict, torch_mod) -> dict:
     return state
 
 
-def materialize(path: str, load=None, save=None, torch_mod=None, log=print) -> str:
+def materialize(path: str, load=None, save=None, torch_mod=None, keys=None, log=print) -> str:
     """Return a loadable bf16 checkpoint, dequantizing once and caching the result.
 
-    `load`, `save` and `torch_mod` exist so the arithmetic is testable offline; production
-    calls all three defaults. A checkpoint that is already plain bf16 is returned untouched
-    and nothing is written.
+    `load`, `save`, `keys` and `torch_mod` exist so the arithmetic is testable offline; production
+    calls all four defaults. A checkpoint that already carries no scales is returned untouched and
+    nothing is written, and that decision is made from the header rather than by loading the
+    weights: a 26.28 GB bf16 repack costs a header read, not a full pass over the model.
     """
     src = str(path or "").strip()
     if not src:
@@ -149,6 +173,13 @@ def materialize(path: str, load=None, save=None, torch_mod=None, log=print) -> s
         if os.path.exists(dst) and os.path.getsize(dst) >= MIN_BYTES:
             log(f"[checkpoint] reusing materialized {os.path.basename(dst)}")
             return dst
+
+    reader = keys if keys is not None else (source_keys if load is None else None)
+    if reader is not None and not needs_dequant_keys(reader(src)):
+        log(f"[checkpoint] {os.path.basename(src)} is already plain bf16, using as-is")
+        return src
+
+    if load is None:
         from safetensors.torch import load_file as load  # type: ignore
     if save is None:
         from safetensors.torch import save_file as save  # type: ignore

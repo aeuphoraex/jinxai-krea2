@@ -22,8 +22,8 @@
         "input": {
           "name": "Checkpoint",
           "type": "string",
-          "description": "Either a Hugging Face repo id with a filename (org/name::path/file.safetensors, downloaded and cached on first load) or a path to a .safetensors file already on the worker. The default is Comfy-Org's ungated repack: a fresh worker has no Hugging Face credentials, and krea/Krea-2-Turbo is licence-gated (401), so it would need HF_TOKEN and an accepted licence.",
-          "default": "Comfy-Org/Krea-2::diffusion_models/krea2_turbo_fp8_scaled.safetensors",
+          "description": "Either a Hugging Face repo id with a filename (org/name::path/file.safetensors, downloaded and cached on first load) or a path to a .safetensors file already on the worker. The default is Comfy-Org's ungated bf16 repack: a fresh worker has no Hugging Face credentials, and krea/Krea-2-Turbo is licence-gated (401), so it would need HF_TOKEN and an accepted licence. It is the bf16 file rather than the fp8 one so nothing is converted on the worker: 26.28 GB is downloaded and loaded as-is, instead of holding fp8 and bf16 in memory at once (~39 GB) while writing a second 26 GB copy to disk.",
+          "default": "Comfy-Org/Krea-2::diffusion_models/krea2_turbo_bf16.safetensors",
           "required": true
         }
       },

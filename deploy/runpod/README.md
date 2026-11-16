@@ -157,8 +157,14 @@ neither visible to an offline test that stopped at the handler's own signature:
 - **The default checkpoint must download without credentials.** A test pod has no Hugging Face
   token, and `krea/Krea-2-Turbo` is gated (`"gated": "auto"`): the next test run reached the
   download and died with `GatedRepoError: 401 … You must have access to it and be authenticated`.
-  The listing default is now `Comfy-Org/Krea-2::diffusion_models/krea2_turbo_fp8_scaled.safetensors`
-  — the same Turbo fp8_scaled DiT, ungated, which answers an anonymous range request. The encoder
+  The listing default is now `Comfy-Org/Krea-2::diffusion_models/krea2_turbo_bf16.safetensors` —
+  the same Turbo DiT in the same ungated repo, which answers an anonymous range request. It is the
+  **bf16** file rather than the fp8 one on purpose: `materialize` reads its safetensors header,
+  sees no `_scale` entries and returns the file untouched, so a cold worker downloads 26.28 GB and
+  loads it — instead of loading 13.1 GB of fp8, holding it and its bf16 conversion in host RAM at
+  once (~39 GB peak) and writing a second 26 GB copy to disk before the DiT can be loaded at all.
+  Note the header check, not the filename: this file is `krea2_turbo_bf16.safetensors`, which does
+  not match the `.bf16.safetensors` suffix the cached dequant output uses. The encoder
   (`Qwen/Qwen3-VL-4B-Instruct`) and VAE (`Qwen/Qwen-Image`) were never gated; only Krea's own repo
   was. Anyone who wants those original weights instead sets `HF_TOKEN` (after accepting the licence
   on the model page) and can then point `OSS_TURBO` back at `krea/Krea-2-Turbo::turbo.safetensors`.
@@ -215,6 +221,9 @@ The fp8 DiT is the right file to upload: `checkpoint.py` dequantises it to bf16 
 the source, because `_pipeline` loads with `strict=True` and the fp8 file carries per-tensor
 `_scale` entries that a strict load rejects. Pre-seeding `HF_HOME` with the encoder and VAE is
 optional and only saves the first worker's download.
+
+The Hub listing, which has no volume, names the published bf16 repack instead: it needs no
+conversion, and a cold worker that reads fp8 and writes bf16 needs ~39 GB of host RAM for one job.
 
 ## Add the repo to RunPod Serverless
 

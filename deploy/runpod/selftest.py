@@ -311,6 +311,11 @@ def hub_config() -> None:
     check("both configs load the same checkpoint",
           str(turbo).split("::")[0] == (test_env.get("OSS_TURBO") or "").split("::")[0], True)
 
+    # Two configs that name different files is how a test proves the wrong one works.
+    check("both configs load the same file",
+          C.split_remote(str(turbo))[1] == C.split_remote(test_env.get("OSS_TURBO") or "")[1],
+          True)
+
     # The image's own CUDA floor: the `nvidia/cuda:X.Y` base declares `NVIDIA_REQUIRE_CUDA` at
     # that version, so any lower entry in allowedCudaVersions only ever schedules onto a host
     # that then fails container prestart. Read the floor, never hard-code it.
@@ -376,6 +381,29 @@ def offline() -> int:
     check("and nothing written", plain_saved.get("hit"), None)
     check("materialized name trusted", C.materialize("w/x.bf16.safetensors"),
           "w/x.bf16.safetensors")
+
+    print("\na plain checkpoint is identified from its header, not by loading it")
+    # The listing names Comfy-Org's `krea2_turbo_bf16.safetensors` — 26.28 GB with no `_scale`
+    # entries. Its name does not end in `.bf16.safetensors`, so the name-trust rule never applied
+    # to it and `materialize` loaded the whole file to find there was nothing to convert. The
+    # header answers that for about a megabyte of reads, and the injected loader here would be
+    # visible if it were ever called.
+    touched: list = []
+    out = C.materialize("w/krea2_turbo_bf16.safetensors",
+                        load=lambda *a, **k: touched.append("load"),
+                        save=lambda *a, **k: touched.append("save"),
+                        torch_mod=FAKE_TORCH, keys=lambda path: ["blk.weight", "norm.bias"],
+                        log=lambda *_: None)
+    check("a plain repack is used as-is", out, "w/krea2_turbo_bf16.safetensors")
+    check("its weights were never read", touched, [])
+    check("a scaled source still takes the dequant path",
+          C.materialize("w/scaled.safetensors",
+                        load=lambda *a, **k: {"blk.weight": FakeTensor(2.0),
+                                             "blk.weight_scale": FakeTensor(0.5)},
+                        save=lambda *a, **k: None, torch_mod=FAKE_TORCH,
+                        keys=lambda path: ["blk.weight", "blk.weight_scale"],
+                        log=lambda *_: None),
+          "w/scaled.bf16.safetensors")
 
     print("\nthe checkpoint can come from the Hub, not only from a volume")
     check("bare repo id is remote", C.looks_remote("krea/Krea-2-Turbo"), True)
