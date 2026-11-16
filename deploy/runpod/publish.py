@@ -41,11 +41,13 @@ DEFAULT_GPUS = ("AMPERE_48", "AMPERE_24", "ADA_24")
 
 # RunPod matches allowedCudaVersions exactly against the host driver, so the list has to be
 # both wide enough to find a machine and no wider than this image can actually start on. Wide
-# is fine; wrong is not: `nvidia/cuda:12.8.1-*` declares `NVIDIA_REQUIRE_CUDA=cuda>=12.8`, and
+# is fine; wrong is not: the base image declares `NVIDIA_REQUIRE_CUDA` at its own version, and
 # a host on an older driver is rejected by the container prestart hook with
-# "unsatisfied condition: cuda>=12.8" — so 12.4-12.7 entries are hosts that can never run us.
-# 12.8 and up are all valid: newer drivers are backward compatible with the cu128 wheels.
-CUDA_VERSIONS = ("13.0", "12.9", "12.8")
+# "unsatisfied condition: cuda>=X.Y" — so those entries are hosts that can never run us. The
+# base is now 12.6.3 (the lowest Ubuntu 24.04 CUDA image), so 12.6 is the floor here; the
+# cu128 torch wheels run on it under minor version compatibility. Keep this list aligned with
+# the Dockerfile's FROM line — selftest.py enforces exactly that.
+CUDA_VERSIONS = ("13.0", "12.9", "12.8", "12.7", "12.6")
 
 # 40 GB of container disk holds the CUDA image and torch; the 12 GB of weights live on the
 # network volume, mounted at the convention the README documents.

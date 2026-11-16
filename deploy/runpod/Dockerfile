@@ -6,7 +6,12 @@
 # Built from the CUDA runtime image rather than a guessed RunPod PyTorch tag: the tag names in
 # registry.runpod.ai change, and a wrong tag fails at `docker build` on the user's machine, not
 # at launch time. Python 3.12 + torch cu128 is what krea2/pyproject.toml asks for.
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
+#
+# 12.6.3, not 12.8.1: Ubuntu 24.04 has no CUDA 12.4 image, and 12.6 is the first series with a
+# `cudnn-runtime-ubuntu24.04` tag, so it is the lowest floor reachable while keeping the
+# distro's Python 3.12. `NVIDIA_REQUIRE_CUDA=cuda>=12.6` is the gate a host driver has to pass
+# to start the container, so this line decides whether 12.6/12.7 hosts can run us at all.
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \

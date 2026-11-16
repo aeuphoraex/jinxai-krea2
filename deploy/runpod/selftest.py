@@ -134,13 +134,16 @@ def hub_config() -> None:
           [dev for pool, devs in POOL_DEVICES.items() if pool in wanted for dev in devs
            if dev == device], [device])
 
-    # The image's own CUDA floor: `nvidia/cuda:12.8.1-*` declares cuda>=12.8, so any lower
-    # entry in allowedCudaVersions only ever schedules onto a host that then fails prestart.
+    # The image's own CUDA floor: the `nvidia/cuda:X.Y` base declares `NVIDIA_REQUIRE_CUDA` at
+    # that version, so any lower entry in allowedCudaVersions only ever schedules onto a host
+    # that then fails container prestart. Read the floor, never hard-code it.
     with open(os.path.join(root, "Dockerfile"), encoding="utf-8") as fh:
         found = re.search(r"FROM\s+nvidia/cuda:(\d+)\.(\d+)", fh.read())
     floor = float(f"{found.group(1)}.{found.group(2)}") if found else 0.0
     allowed = [float(v) for v in (tests.get("allowedCudaVersions") or []) if re.match(r"^\d+\.\d+$", v)]
     check("CUDA list respects the image floor", bool(allowed) and min(allowed) >= floor, True)
+    # A list that starts above the floor leaves reachable hosts unused for no reason.
+    check("CUDA list reaches the image floor", f"{floor:.1f}" in (tests.get("allowedCudaVersions") or []), True)
 
 
 def offline() -> int:

@@ -7,7 +7,15 @@
 #
 # The studio deck (uncensored merge, abliterated encoder, adapters, 4K, Wan video) is NOT in
 # this image. This is the stock-core public line only.
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
+#
+# Ubuntu 24.04 has no CUDA 12.4 image (that series stops at ubuntu22.04), so 12.6.3 is the
+# lowest base that keeps the distro's Python 3.12 without a third-party PPA. The version here
+# matters for one reason: the base declares `NVIDIA_REQUIRE_CUDA=cuda>=12.6`, and that is what
+# a host driver must satisfy to start this container at all. A 12.6 or 12.7 host used to fail
+# at prestart for no functional reason. torch's cu128 wheels bring their own 12.8 runtime
+# libraries and run on any 12.x driver under CUDA minor version compatibility (>= 525.60.13);
+# SASS for Ampere/Ada is baked into the wheel, so PTX JIT on an older driver is not needed.
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
