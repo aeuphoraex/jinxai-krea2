@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import time
 import types
 import urllib.error
 import urllib.request
@@ -563,25 +564,58 @@ def remote() -> int:
     return 1 if failed else 0
 
 
-def live(endpoint: str) -> int:
-    """One real job against a deployed endpoint. Costs a few seconds of GPU, nothing else."""
+def live(endpoint: str, timeout: int = 1800, interval: int = 20) -> int:
+    """One real job against a deployed endpoint, waited out for as long as a cold start takes.
+
+    A cold worker downloads 13.1 GB of checkpoint and dequantises it once before the first frame,
+    which is minutes — longer than `/runsync` will hold a connection. So this submits with
+    `/run` and polls `/status`, printing progress, because a worker that never scales has to be
+    distinguishable from one that is simply loading 26 GB of weights.
+    """
     key = str(os.environ.get("RUNPOD_API_KEY") or "").strip()
     if not key:
         print("RUNPOD_API_KEY is not set")
         return 2
+
+    def call(path: str, payload: bytes | None = None, budget: int = 60) -> dict:
+        req = urllib.request.Request(f"https://api.runpod.ai/v2/{endpoint}{path}", data=payload,
+                                     method="POST" if payload else "GET")
+        req.add_header("Authorization", "Bearer " + key)
+        if payload:
+            req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=budget) as resp:
+            return json.loads(resp.read().decode("utf-8") or "{}")
+
     body = json.dumps({"input": {"prompt": "a portrait, window light, 35mm film",
                                  "width": 1024, "height": 1024, "seed": 7}}).encode()
-    req = urllib.request.Request(f"https://api.runpod.ai/v2/{endpoint}/runsync", data=body,
-                                 method="POST")
-    req.add_header("Authorization", "Bearer " + key)
-    req.add_header("Content-Type", "application/json")
     try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            got = json.loads(resp.read().decode("utf-8") or "{}")
+        job = call("/run", body)
     except Exception as exc:              # noqa: BLE001 - report, never mask
-        print(f"request failed: {type(exc).__name__}: {exc}")
+        print(f"submit failed: {type(exc).__name__}: {exc}")
         return 1
-    state = str(got.get("status") or "").upper()
+    job_id = str(job.get("id") or "")
+    if not job_id:
+        print("submit carried no id:", json.dumps(job)[:400])
+        return 1
+    print(f"job {job_id} submitted; waiting up to {timeout}s for a worker")
+
+    started, got, state = time.time(), {}, "IN_QUEUE"
+    while True:
+        try:
+            got = call(f"/status/{job_id}", budget=45)
+        except Exception as exc:          # noqa: BLE001 - report, never mask
+            print(f"poll failed: {type(exc).__name__}: {exc}")
+            return 1
+        state = str(got.get("status") or "").upper()
+        print(f"  {int(time.time() - started):4d}s {state} delay={got.get('delayTime')} "
+              f"exec={got.get('executionTime')} worker={str(got.get('workerId'))[:12]}")
+        if state in ("COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"):
+            break
+        if time.time() - started > timeout:
+            print(f"gave up after {timeout}s; job {job_id} is still {state}")
+            return 1
+        time.sleep(interval)
+
     out = got.get("output") or {}
     if state != "COMPLETED" or not isinstance(out, dict):
         print("not completed:", json.dumps(got)[:600])
@@ -600,11 +634,13 @@ if __name__ == "__main__":
     parser.add_argument("--remote", action="store_true",
                         help="check the configured checkpoint downloads without credentials")
     parser.add_argument("--endpoint", default=os.environ.get("RUNPOD_ENDPOINT_ID", ""))
+    parser.add_argument("--timeout", type=int, default=1800,
+                        help="seconds to wait for a live job, cold start included")
     args = parser.parse_args()
     if args.remote:
         sys.exit(remote())
     if args.live:
-        sys.exit(live(args.endpoint))
+        sys.exit(live(args.endpoint, args.timeout))
     rc = offline()
     if FAILS:
         print(f"\n{len(FAILS)} FAILED")

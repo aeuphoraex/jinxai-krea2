@@ -35,11 +35,14 @@ BASE = "https://rest.runpod.io/v1"
 # encoder is handled — see lowvram.py for what a 32 GB card needs. H100 is deliberately absent:
 # this host draws commodity frames, and an H100 there costs more than the H100 it replaces.
 #
-# Pool IDs, not device names: a serverless endpoint selects hardware by pool ("AMPERE_24" =
-# L4 / A5000 / 3090), and that is all `saveEndpoint` accepts. Device names such as "NVIDIA L4"
-# are a different identifier space and belong only in a Pod request — which is what
-# `.runpod/tests.json` builds, hence the device name there. Order is the rent priority.
-DEFAULT_GPUS = ("AMPERE_48", "ADA_48_PRO", "ADA_32_PRO")
+# Device names, not pool IDs. This script talks REST v1 (`/v1/endpoints`), whose `gpuTypeIds`
+# is an enum of GPU *type* IDs: "ADA_32_PRO" is rejected with `value must be one of 'NVIDIA
+# A40', …` (measured 2026-11-16). The pool spelling belongs to the GraphQL `saveEndpoint`
+# mutation and to `.runpod/hub.json`, which are different identifier spaces. Order is the rent
+# priority: the A40 is the cheapest 48 GB card, and the 5090 is the 32 GB tier that lowvram.py
+# makes usable at all.
+DEFAULT_DEVICES = ("NVIDIA A40", "NVIDIA L40S", "NVIDIA RTX 6000 Ada Generation",
+                   "NVIDIA GeForce RTX 5090")
 
 # RunPod matches allowedCudaVersions exactly against the host driver, so the list has to be
 # both wide enough to find a machine and no wider than this image can actually start on. Wide
@@ -107,7 +110,10 @@ def endpoint_payload(name: str, template_id: str, gpus, workers_max: int,
         "templateId": template_id,
         "gpuTypeIds": list(gpus),
         "gpuCount": 1,
-        "allowedCudaVersions": list(CUDA_VERSIONS),
+        # No `allowedCudaVersions`. REST v1's enum tops out at 13.0 and rejects the 13.2 that both
+        # the A40 and the 5090 report and that `.runpod/hub.json` asks for, so sending the
+        # truncated list would match no host in the pool and look like a sold-out GPU. Omitting
+        # the field leaves the endpoint schedulable on the fleet as it actually is.
         "workersMin": 0,
         "workersMax": max(1, int(workers_max)),
         "idleTimeout": 5,
@@ -141,7 +147,7 @@ def main() -> int:
     args = parser.parse_args()
 
     key = _env("RUNPOD_API_KEY")
-    gpus = tuple(args.gpu) or DEFAULT_GPUS
+    gpus = tuple(args.gpu) or DEFAULT_DEVICES
     template = template_payload(args.name, args.image, args.weights, args.hf_home)
     endpoint = endpoint_payload(args.name, "<templateId>", gpus, args.workers_max,
                                 args.volume_id)
