@@ -126,6 +126,12 @@ def hub_config() -> None:
     check("hub.json agrees on the CUDA list",
           sorted(hub.get("allowedCudaVersions") or []) == sorted(tests.get("allowedCudaVersions") or []),
           True)
+
+    # A third copy lives in publish.py; three lists that disagree is how an endpoint ends up with
+    # the list that could not schedule while the Hub has the one that can.
+    import publish as P
+    check("publish.py agrees on the CUDA list",
+          sorted(P.CUDA_VERSIONS) == sorted(tests.get("allowedCudaVersions") or []), True)
     check("both configs ask for one GPU",
           (hub.get("gpuCount"), tests.get("gpuCount")), (1, 1))
 
@@ -144,6 +150,11 @@ def hub_config() -> None:
     check("CUDA list respects the image floor", bool(allowed) and min(allowed) >= floor, True)
     # A list that starts above the floor leaves reachable hosts unused for no reason.
     check("CUDA list reaches the image floor", f"{floor:.1f}" in (tests.get("allowedCudaVersions") or []), True)
+    # A list that is only the floor matches nothing on a fleet that has moved on: on 2026-11-16 the
+    # A40 pool reported 13.2 alone, so a 12.6-only list is a capacity outage that looks like a sold
+    # -out GPU. At least one entry has to be newer than the image.
+    check("CUDA list reaches past the floor",
+          bool([v for v in allowed if v > floor]), True)
 
 
 def offline() -> int:

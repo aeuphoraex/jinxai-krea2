@@ -52,6 +52,39 @@ export RUNPOD_ENDPOINT_ID=...
 python -c "import orbit_engine as E; c=E.RunPod(); print(c.wait(c.create({'prompt':'a portrait','width':1280,'height':1600,'seed':7})))"
 ```
 
+## Capacity: `allowedCudaVersions` is an exact match, per host
+
+`GET /v2/catalog/gpus?include=AVAILABILITY&product=SERVERLESS` (Bearer key) returns every GPU
+with an `availability` and a `cudaVersions` array whose entries carry their own `available` flag.
+On 2026-11-16 the A40 read:
+
+```json
+"availability": "MEDIUM",
+"cudaVersions": [{"version": "12.8", "available": false},
+                 {"version": "13.2", "available": true}]
+```
+
+RunPod matches the requested list **exactly** against the version a host reports. A list of
+`12.6 … 13.0` therefore matched no A40 at all, and the Hub answered "no capacity on A40" while
+the pool was MEDIUM — no amount of extra GPU models would have helped. `13.2` is now first in
+`.runpod/hub.json`, `.runpod/tests.json` and `publish.CUDA_VERSIONS`, and `selftest.py` fails if
+the three disagree. The rest of the list stays: those drivers can still start the image.
+
+Two rules follow, and the old list broke the second one:
+
+- Every entry must be **at or above the image floor**. Both Dockerfiles use
+  `nvidia/cuda:12.6.3`, which declares `cuda>=12.6`; a 12.4 entry schedules onto a host whose
+  container then dies at prestart, which is worse than no capacity.
+- The list must be **wide and re-read from the catalog** whenever a launch has no capacity. Never
+  add a version no machine reports, and never assume the newest published enum is the newest
+  deployed driver. `product=POD` is what `tests.json` schedules on; `product=SERVERLESS` is what
+the listing deploys.
+
+Also current as of the same read: `NVIDIA RTX A6000` and `NVIDIA L40` had **no** availability in
+either product. They remain inside `AMPERE_48` / `ADA_48_PRO`, so the pools keep them as future
+targets, but a test pinned to one named device has to name a device that is up — today the A40,
+the L40S or the RTX 6000 Ada, all at 13.2.
+
 ## Cold start is the whole cost argument
 
 Measured on this pipeline: 92 s cold vs 33.6 s warm on an H100, of which ~58 s is weight load.

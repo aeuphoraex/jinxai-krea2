@@ -47,7 +47,15 @@ DEFAULT_GPUS = ("AMPERE_48", "AMPERE_24", "ADA_24")
 # base is now 12.6.3 (the lowest Ubuntu 24.04 CUDA image), so 12.6 is the floor here; the
 # cu128 torch wheels run on it under minor version compatibility. Keep this list aligned with
 # the Dockerfile's FROM line — selftest.py enforces exactly that.
-CUDA_VERSIONS = ("13.0", "12.9", "12.8", "12.7", "12.6")
+#
+# 13.2 comes first because that is what the fleet reports. On 2026-11-16
+# `GET /v2/catalog/gpus?include=AVAILABILITY&product=SERVERLESS` returned the A40 with
+#   "availability": "MEDIUM",
+#   "cudaVersions": [{"version": "12.8", "available": false},
+#                    {"version": "13.2", "available": true}]
+# Matching is exact, so a list ending at 13.0 matched no A40 in the pool at all and the Hub
+# answered "no capacity" while the pool was MEDIUM. Re-read that field before editing this.
+CUDA_VERSIONS = ("13.2", "13.0", "12.9", "12.8", "12.7", "12.6")
 
 # 40 GB of container disk holds the CUDA image and torch; the 12 GB of weights live on the
 # network volume, mounted at the convention the README documents.
