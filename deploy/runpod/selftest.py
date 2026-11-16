@@ -63,6 +63,11 @@ class FakeTensor:
 FAKE_TORCH = types.SimpleNamespace(bfloat16="bf16", float32="f32")
 
 
+def _unpatched_compile(fn=None, **kwargs):
+    """Stands in for a live `torch.compile`: reaching it means the worker left dynamo on."""
+    raise AssertionError("torch.compile reached the graph: the worker did not disable dynamo")
+
+
 class FakeParam:
     """One parameter: a count and a dtype width are all `tensor_bytes` needs."""
 
@@ -198,7 +203,14 @@ def stubs(width: int, height: int) -> dict:
     torch = types.ModuleType("torch")
     torch.cuda = types.SimpleNamespace(mem_get_info=lambda: (2_000_000_000, 34_359_738_368),
                                       empty_cache=lambda: None)
+    # `compile` raises until the worker replaces it, and dynamo starts enabled: together they
+    # fail the suite if the first frame would have gone to Inductor and needed a C compiler.
+    torch.compile = _unpatched_compile
+    dynamo = types.ModuleType("torch._dynamo")
+    dynamo.config = types.SimpleNamespace(disable=False)
+    torch._dynamo = dynamo
     sys.modules["torch"] = torch
+    sys.modules["torch._dynamo"] = dynamo
     calls["encoder"], calls["stack"] = fake_encoder()
 
     def _pipeline(checkpoint="oss_turbo"):
@@ -503,6 +515,17 @@ def offline() -> int:
     check("width is clamped and snapped",
           H.handler({"input": {"prompt": "a portrait", "width": 99999}})["images"][0]["width"],
           2048)
+
+    print("\nthe worker never needs a C compiler for the first frame")
+    for path in ("Dockerfile", "deploy/runpod/Dockerfile"):
+        with open(os.path.join(root, path), encoding="utf-8") as fh:
+            image = fh.read()
+        check(f"{path} exports TORCH_COMPILE_DISABLE", "TORCH_COMPILE_DISABLE=1" in image, True)
+    # The stub above raises if it is ever called, so this only holds if the worker replaced it.
+    neutral = sys.modules["torch"].compile(fullgraph=True)
+    probe = lambda value: value
+    check("the worker replaces torch.compile with an identity", neutral(probe) is probe, True)
+    check("and disables dynamo in-process", sys.modules["torch._dynamo"].config.disable, True)
 
     print("\nthe Space points at RunPod, never at the studio deck")
     space = os.path.join(os.path.dirname(HERE), "huggingface", "app.py")

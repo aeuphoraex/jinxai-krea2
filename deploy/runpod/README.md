@@ -163,6 +163,19 @@ neither visible to an offline test that stopped at the handler's own signature:
   was. Anyone who wants those original weights instead sets `HF_TOKEN` (after accepting the licence
   on the model page) and can then point `OSS_TURBO` back at `krea/Krea-2-Turbo::turbo.safetensors`.
 
+- **The runtime image has no C compiler.** The third run got past the download, loaded the weights
+  and died on the first frame with `torch._inductor.exc.InductorError: RuntimeError: Failed to find
+  C compiler`. `krea2/mmdit.py` decorates `RMSNorm`, `PositionalEncoding` and `LastLayer` with
+  `@torch.compile(fullgraph=True)`, so the first forward hands a graph to Inductor, and Triton's
+  driver compiles a C extension with `cc` before it emits a kernel — and the base is
+  `nvidia/cuda:*-runtime`, which deliberately carries no toolchain. `handler.pipeline()` now calls
+  `_no_dynamo()` before it imports `inference`: `torch.compile` becomes an identity decorator and
+  `torch._dynamo.config.disable` is set, so a template's environment cannot put the compiled path
+  back. Both Dockerfiles also export `TORCH_COMPILE_DISABLE=1`, the name
+  `torch/_dynamo/config.py` actually reads. Installing gcc instead would have made every cold
+  worker compile kernels for whichever GPU it landed on — a worse trade for a scale-to-zero
+  endpoint, and eager is the reference arithmetic anyway.
+
 `python deploy/runpod/selftest.py --remote` asks the pod's question from here — an anonymous
 `Range: bytes=0-0` request for each configured source — so a gated or misspelt default fails
 before a test run is spent on it.

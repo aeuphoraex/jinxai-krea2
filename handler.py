@@ -76,6 +76,43 @@ def free_vram() -> int:
         return 0
 
 
+def _no_dynamo() -> None:
+    """Run the DiT eagerly: this image has no C compiler for Inductor.
+
+    `krea2/mmdit.py` decorates `RMSNorm`, `PositionalEncoding` and `LastLayer` with
+    `@torch.compile(fullgraph=True)`, so the first forward hands a graph to Inductor, and Triton's
+    driver compiles a small C extension with `cc` before it can emit a kernel. The base image is
+    `nvidia/cuda:*-runtime`, which deliberately carries no toolchain, so a live Hub run died at
+    the first frame with "Failed to find C compiler".
+
+    Two switches, called before `inference` (and therefore `mmdit`) is imported: `torch.compile`
+    becomes an identity decorator, so the three decorated methods are plain Python, and
+    `torch._dynamo.config.disable` is set for anything that reaches dynamo another way. The
+    identity decorator is the one that matters — a template's environment can turn a flag off, but
+    it cannot put the compiled path back. The image also exports `TORCH_COMPILE_DISABLE=1`, which
+    is the name `torch/_dynamo/config.py` reads. None of this touches the Modal studio, which keeps
+    the compiled path because its image does carry a toolchain.
+    """
+    try:
+        import torch
+    except Exception:                       # noqa: BLE001 - no torch here, nothing to disable
+        return
+
+    def _eager(fn=None, *args, **kwargs):
+        """Stand-in for `torch.compile`: hand the decorated function straight back."""
+        if fn is None:
+            return lambda inner: inner
+        return fn
+
+    torch.compile = _eager
+    try:
+        import torch._dynamo as dynamo
+
+        dynamo.config.disable = True
+    except Exception:                       # noqa: BLE001 - the decorator swap already covers us
+        pass
+
+
 def pipeline():
     """Load MMDiT + conditioner + VAE once per worker; 12 GB of weights is not per-job work.
 
@@ -85,6 +122,7 @@ def pipeline():
     run, because that is the only reading that reflects what the renderer actually took.
     """
     if not STATE:
+        _no_dynamo()
         import inference as K
 
         source = materialize(os.environ.get("OSS_TURBO") or "")

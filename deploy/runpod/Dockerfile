@@ -18,6 +18,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     PYTHONPATH=/opt:/opt/krea2 \
+    # The base is a CUDA *runtime* image: no C compiler. `krea2/mmdit.py` decorates three
+    # modules with @torch.compile, so the first forward hands a graph to Inductor and Triton's
+    # driver builds a C extension with `cc` before it emits a kernel. `torch/_dynamo/config.py`
+    # reads this name for `config.disable` (older releases called it TORCHDYNAMO_DISABLE).
+    # `handler.pipeline()` also neutralises the decorator in-process, which a template's env
+    # cannot undo.
+    TORCH_COMPILE_DISABLE=1 \
     PATH=/opt/venv/bin:$PATH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
