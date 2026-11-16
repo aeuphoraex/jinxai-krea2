@@ -23,7 +23,7 @@
           "name": "Checkpoint",
           "type": "string",
           "description": "Either a Hugging Face repo id such as krea/Krea-2-Turbo (downloaded and cached on first load) or a path to a .safetensors file already on the worker. A repo id with several checkpoints must name the file as org/name::file.safetensors.",
-          "default": "krea/Krea-2-Turbo",
+          "default": "krea/Krea-2-Turbo::turbo.safetensors",
           "required": true
         }
       },

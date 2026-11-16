@@ -126,6 +126,8 @@ def draw(prompt: str, size: str, seed: int):
     out = got.get("output") or {}
     if isinstance(out, dict) and out.get("error"):
         return None, f"Worker refused: {out['error']}"
+    if isinstance(out, dict) and out.get("refused"):
+        return None, f"Refused: {out['refused']}."
     first = ((out.get("images") if isinstance(out, dict) else None) or [{}])[0]
     data = str((first or {}).get("data") or "")
     if not data:

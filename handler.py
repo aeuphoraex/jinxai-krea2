@@ -93,7 +93,12 @@ def handler(job: dict) -> dict:
     # The same rule as the studio, enforced before the container spends a second of GPU.
     reason = orbit_guard.refused(prompt)
     if reason:
-        return {"error": f"refused: {reason}"}
+        # A refusal is an answer, not a broken job. RunPod marks any job whose output carries an
+        # `error` key as FAILED, so a refusal returned that way can never be a passing Hub test —
+        # and the listing's second test exists to prove exactly this path. `refused` keeps the
+        # meaning while the job completes, and the empty `images` list says nothing rendered.
+        return {"refused": reason, "images": [], "steps": STEPS, "engine": "runpod",
+                "line": "public", "checkpoint": "krea2-turbo (stock)"}
 
     width = _snap(_clamp(event.get("width"), 512, 2048, 1024))
     height = _snap(_clamp(event.get("height"), 512, 2048, 1024))

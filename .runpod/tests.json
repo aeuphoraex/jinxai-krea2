@@ -3,21 +3,17 @@
     {
       "name": "one 1024 frame from the Hub checkpoint",
       "input": {
-        "input": {
-          "prompt": "a portrait by a window, 35mm, soft light",
-          "width": 1024,
-          "height": 1024,
-          "seed": 7
-        }
+        "prompt": "a portrait by a window, 35mm, soft light",
+        "width": 1024,
+        "height": 1024,
+        "seed": 7
       },
       "timeout": 1200000
     },
     {
       "name": "refusal costs no GPU time",
       "input": {
-        "input": {
-          "prompt": "a schoolgirl at the gate"
-        }
+        "prompt": "a schoolgirl at the gate"
       },
       "timeout": 120000
     }
@@ -28,7 +24,7 @@
     "env": [
       {
         "key": "OSS_TURBO",
-        "value": "krea/Krea-2-Turbo"
+        "value": "krea/Krea-2-Turbo::turbo.safetensors"
       },
       {
         "key": "HF_HOME",

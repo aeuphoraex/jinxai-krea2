@@ -104,6 +104,30 @@ carrying `<name>_scale` entries fails the job. `checkpoint.py` applies the same 
 `<name>.bf16.safetensors`, so the ~12 GB rewrite is paid once per volume, not per cold worker.
 Leaving `OSS_TURBO` pointing at the fp8 file is correct; the worker converts it on first load.
 
+## What the Hub actually sends, and what it will accept
+
+A test pod on 2026-11-16 booted clean on an A40 at CUDA 13.2, passed every fitness check, then
+failed **both** tests with `prompt is required` and `jobStatus=FAILED`. Two mistakes, both ours,
+neither visible to an offline test that stopped at the handler's own signature:
+
+- **`tests.json` `input` is the raw job payload.** The Hub wraps it in the submission envelope
+  (`{"input": <your input>}`), exactly as `/run` does. Writing `{"input": {"input": {…}}}` in
+  the file makes the handler receive `{"input": {…}}` as its `input`, so `prompt` is empty and
+  the job dies before the guard. Every test here is now a flat payload, and `selftest.py` feeds
+  each one through the handler, so this cannot return without failing offline.
+- **A refusal must be a completed job.** RunPod marks any job whose output carries an `error` key
+  as `FAILED` (`error_class=worker_app_error`), which means a refusal returned that way can never
+  pass the `refusal costs no GPU time` test. The worker now answers a policy refusal with
+  `{"refused": <reason>, "images": []}` and no `error`, so the job completes, the reason is still
+  explicit, and nothing touched the GPU. `orbit_engine.RunPod.wait` and the Space both read
+  `refused` before treating an empty `images` list as a bug.
+- **A repo id must name its file.** `krea/Krea-2-Turbo` publishes six safetensors, and
+  `checkpoint.fetch` refuses to guess, so the test env and the Hub default are
+  `krea/Krea-2-Turbo::turbo.safetensors`. A bare repo id would have been the next failure.
+
+The Hub counts a test as valid on a 200 response, which a `FAILED` job does not give you — so a
+red test row is a real defect, not a formality.
+
 ## Publish
 
 ```bash

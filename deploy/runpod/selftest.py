@@ -60,8 +60,11 @@ class FakeTensor:
 FAKE_TORCH = types.SimpleNamespace(bfloat16="bf16", float32="f32")
 
 
-def stubs(width: int, height: int) -> None:
-    """Install the modules the handler imports, answering the real shapes."""
+def stubs(width: int, height: int) -> dict:
+    """Install the modules the handler imports, answering the real shapes.
+
+    Returns call counters, so a check can assert that a refused prompt never reached the GPU.
+    """
     from PIL import Image
 
     runpod = types.ModuleType("runpod")
@@ -70,10 +73,10 @@ def stubs(width: int, height: int) -> None:
 
     inference = types.ModuleType("inference")
     inference.checkpoints = {"oss_turbo": os.environ.get("OSS_TURBO")}
-    calls: list = []
+    calls: dict = {"pipeline": [], "sample": []}
 
     def _pipeline(checkpoint="oss_turbo"):
-        calls.append(checkpoint)
+        calls["pipeline"].append(checkpoint)
         if not inference.checkpoints.get(checkpoint):
             raise RuntimeError("checkpoint path is empty — OSS_TURBO was not set")
         return ("dit", "ae", "encoder")
@@ -84,10 +87,12 @@ def stubs(width: int, height: int) -> None:
     sampling = types.ModuleType("sampling")
 
     def sample(model, ae, encoder, prompts, **kw):
+        calls["sample"].append((int(kw["width"]), int(kw["height"])))
         return [Image.new("RGB", (int(kw["width"]), int(kw["height"])), (40, 20, 60))]
 
     sampling.sample = sample
     sys.modules["sampling"] = sampling
+    return calls
 
 
 POOLS = {"AMPERE_16", "AMPERE_24", "ADA_24", "ADA_32_PRO", "AMPERE_48", "ADA_48_PRO",
@@ -139,6 +144,20 @@ def hub_config() -> None:
     check("test device belongs to an advertised pool",
           [dev for pool, devs in POOL_DEVICES.items() if pool in wanted for dev in devs
            if dev == device], [device])
+
+    # `checkpoint.fetch` refuses to guess between several safetensors files by design, so a
+    # remote source has to name one. `krea/Krea-2-Turbo` ships six, and a bare repo id made the
+    # first Hub test die at load with "holds several checkpoints".
+    import checkpoint as C
+    hub_env = {str(e.get("key")): e for e in (hub.get("env") or [])}
+    turbo = (((hub_env.get("OSS_TURBO") or {}).get("input") or {}).get("default") or "")
+    test_env = {str(e.get("key")): str(e.get("value") or "") for e in (tests.get("env") or [])}
+    for label, value in (("tests.json OSS_TURBO", test_env.get("OSS_TURBO") or ""),
+                         ("hub.json OSS_TURBO default", str(turbo))):
+        check(f"{label} names a file when it is a repo id",
+              (not C.looks_remote(value)) or "::" in value, True)
+    check("both configs load the same checkpoint",
+          str(turbo).split("::")[0] == (test_env.get("OSS_TURBO") or "").split("::")[0], True)
 
     # The image's own CUDA floor: the `nvidia/cuda:X.Y` base declares `NVIDIA_REQUIRE_CUDA` at
     # that version, so any lower entry in allowedCudaVersions only ever schedules onto a host
@@ -249,7 +268,7 @@ def offline() -> int:
 
     print("\nthe handler answers in the deployment's shape")
     os.environ["OSS_TURBO"] = os.path.join(HERE, "fake.bf16.safetensors")
-    stubs(1280, 1600)
+    calls = stubs(1280, 1600)
     for name in ("handler", "checkpoint"):
         sys.modules.pop(name, None)
     import handler as H
@@ -267,13 +286,37 @@ def offline() -> int:
     check("decodes to a png", base64.b64decode(first["data"].split(",", 1)[-1])[:8],
           b"\x89PNG\r\n\x1a\n")
 
+    # The Hub sends each tests.json `input` as the job's `input`, so that object must be the raw
+    # job payload. Nesting it again (`{"input": {"input": {…}}}`) leaves the handler with no
+    # `prompt`, which is exactly how a live test pod failed twice on 2026-11-16 with
+    # "prompt is required" while every offline check passed.
+    print("\nHub test inputs are raw job payloads, and the handler accepts them")
+    root = os.path.dirname(os.path.dirname(HERE))
+    with open(os.path.join(root, ".runpod", "tests.json"), encoding="utf-8") as fh:
+        cases = json.load(fh).get("tests") or []
+    check("there are tests", len(cases) >= 1, True)
+    for case in cases:
+        name = str(case.get("name") or "?")
+        payload = case.get("input") or {}
+        check(f"{name!r} is not wrapped in a second input", "input" in payload, False)
+        check(f"{name!r} carries a prompt", bool(str(payload.get("prompt") or "").strip()), True)
+        out = H.handler({"input": payload})
+        check(f"{name!r} reaches the workflow", out.get("error"), None)
+
     print("\nwhat must be refused before any GPU work")
-    check("empty prompt", H.handler({"input": {}})["error"], "prompt is required")
-    check("minor refused", H.handler({"input": {"prompt": "a schoolgirl at the gate"}})["error"],
-          "refused: school-age framing is not available on this deck")
+    spent = (len(calls["pipeline"]), len(calls["sample"]))
+    check("empty prompt", H.handler({"input": {}}).get("error"), "prompt is required")
+    minor = H.handler({"input": {"prompt": "a schoolgirl at the gate"}})
+    check("minor refused", minor.get("refused"),
+          "school-age framing is not available on this deck")
+    # A refusal has to be a *completed* job: RunPod fails any job whose output carries `error`,
+    # so a refusal in that shape can never pass the Hub's "refusal costs no GPU time" test.
+    check("refusal is not a failed job", "error" in minor, False)
+    check("refusal carries no frame", minor.get("images"), [])
+    check("refusal costs no GPU time", (len(calls["pipeline"]), len(calls["sample"])), spent)
     check("real person refused",
-          ("refused" in str(H.handler({"input": {"prompt": "a photo of a real person"}})["error"])),
-          True)
+          "real people" in str(H.handler({"input": {"prompt": "a photo of a real person"}})
+                               .get("refused")), True)
     check("width is clamped and snapped",
           H.handler({"input": {"prompt": "a portrait", "width": 99999}})["images"][0]["width"],
           2048)
