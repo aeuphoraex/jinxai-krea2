@@ -125,6 +125,19 @@ neither visible to an offline test that stopped at the handler's own signature:
   `checkpoint.fetch` refuses to guess, so the test env and the Hub default are
   `krea/Krea-2-Turbo::turbo.safetensors`. A bare repo id would have been the next failure.
 
+- **The default checkpoint must download without credentials.** A test pod has no Hugging Face
+  token, and `krea/Krea-2-Turbo` is gated (`"gated": "auto"`): the next test run reached the
+  download and died with `GatedRepoError: 401 … You must have access to it and be authenticated`.
+  The listing default is now `Comfy-Org/Krea-2::diffusion_models/krea2_turbo_fp8_scaled.safetensors`
+  — the same Turbo fp8_scaled DiT, ungated, which answers an anonymous range request. The encoder
+  (`Qwen/Qwen3-VL-4B-Instruct`) and VAE (`Qwen/Qwen-Image`) were never gated; only Krea's own repo
+  was. Anyone who wants those original weights instead sets `HF_TOKEN` (after accepting the licence
+  on the model page) and can then point `OSS_TURBO` back at `krea/Krea-2-Turbo::turbo.safetensors`.
+
+`python deploy/runpod/selftest.py --remote` asks the pod's question from here — an anonymous
+`Range: bytes=0-0` request for each configured source — so a gated or misspelt default fails
+before a test run is spent on it.
+
 The Hub counts a test as valid on a 200 response, which a `FAILED` job does not give you — so a
 red test row is a real defect, not a formality.
 

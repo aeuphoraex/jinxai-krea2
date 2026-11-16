@@ -9,6 +9,7 @@ fp8_scaled checkpoint carrying `<name>_scale` entries fails the job unless it is
 first. That arithmetic is exercised against fake tensors, exactly as `app.py::_dequant` does it.
 
     python deploy/runpod/selftest.py
+    python deploy/runpod/selftest.py --remote                 # checkpoint reachable without a token
     python deploy/runpod/selftest.py --live --endpoint <id>   # one real job, needs the key
 """
 
@@ -21,6 +22,7 @@ import os
 import re
 import sys
 import types
+import urllib.error
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -332,6 +334,55 @@ def offline() -> int:
     return 0
 
 
+def remote() -> int:
+    """Anonymous reachability of the configured checkpoint, from a fresh worker's point of view.
+
+    A Hub test pod carries no Hugging Face credentials, so the listing's source has to answer an
+    anonymous request. `krea/Krea-2-Turbo` is gated ("auto"): the second live test run reached
+    the download and died with GatedRepoError 401, which no offline check could see. This asks the
+    same question the pod asks, and for a byte rather than the whole 13 GB.
+    """
+    import checkpoint as C
+
+    root = os.path.dirname(os.path.dirname(HERE))
+    with open(os.path.join(root, ".runpod", "hub.json"), encoding="utf-8") as fh:
+        hub_env = {str(e.get("key")): e for e in json.load(fh)["config"].get("env") or []}
+    with open(os.path.join(root, ".runpod", "tests.json"), encoding="utf-8") as fh:
+        test_env = {str(e.get("key")): str(e.get("value") or "")
+                    for e in json.load(fh)["config"].get("env") or []}
+    sources = (("hub.json default",
+                ((hub_env.get("OSS_TURBO") or {}).get("input") or {}).get("default") or ""),
+               ("tests.json env", test_env.get("OSS_TURBO") or ""))
+    failed = 0
+    for label, source in sources:
+        repo, filename = C.split_remote(str(source))
+        if not C.looks_remote(str(source)) or not filename:
+            print(f"  FAIL {label}: not a remote repo id + file: {source!r}")
+            failed += 1
+            continue
+        url = f"https://huggingface.co/{repo}/resolve/main/{filename}"
+        try:
+            req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                status = resp.status
+                span = str(resp.headers.get("Content-Range") or "")
+        except urllib.error.HTTPError as exc:
+            print(f"  FAIL {label}: {exc.code} {exc.reason} for {repo}/{filename}")
+            print("       a Hub test pod has no HF token; use a source that answers anonymously")
+            failed += 1
+            continue
+        except Exception as exc:              # noqa: BLE001 - report, never mask
+            print(f"  FAIL {label}: {type(exc).__name__}: {exc}")
+            failed += 1
+            continue
+        total = span.rsplit("/", 1)[-1] if "/" in span else ""
+        gb = int(total) / 1e9 if total.isdigit() else 0.0
+        ok = status in (200, 206) and gb > 1
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}: {status} anonymous, {gb:.1f} GB, {repo}/{filename}")
+        failed += 0 if ok else 1
+    return 1 if failed else 0
+
+
 def live(endpoint: str) -> int:
     """One real job against a deployed endpoint. Costs a few seconds of GPU, nothing else."""
     key = str(os.environ.get("RUNPOD_API_KEY") or "").strip()
@@ -366,8 +417,12 @@ def live(endpoint: str) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--remote", action="store_true",
+                        help="check the configured checkpoint downloads without credentials")
     parser.add_argument("--endpoint", default=os.environ.get("RUNPOD_ENDPOINT_ID", ""))
     args = parser.parse_args()
+    if args.remote:
+        sys.exit(remote())
     if args.live:
         sys.exit(live(args.endpoint))
     rc = offline()

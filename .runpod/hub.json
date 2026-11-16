@@ -1,6 +1,6 @@
 {
   "title": "Krea 2 Turbo (public line)",
-  "description": "8-step distilled Krea 2 Turbo text-to-image worker: one prompt in, one 1K PNG out. The schedule is pinned at 8 steps / CFG 0, and the age rule runs before any GPU work.",
+  "description": "8-step distilled Krea 2 Turbo text-to-image worker: one prompt in, one 1K PNG out. The schedule is pinned at 8 steps / CFG 0, and the age rule runs before any GPU work. Weights come from Comfy-Org's ungated Krea 2 repack, so a fresh worker fetches them with no Hugging Face token.",
   "type": "serverless",
   "category": "image",
   "config": {
@@ -22,8 +22,8 @@
         "input": {
           "name": "Checkpoint",
           "type": "string",
-          "description": "Either a Hugging Face repo id such as krea/Krea-2-Turbo (downloaded and cached on first load) or a path to a .safetensors file already on the worker. A repo id with several checkpoints must name the file as org/name::file.safetensors.",
-          "default": "krea/Krea-2-Turbo::turbo.safetensors",
+          "description": "Either a Hugging Face repo id with a filename (org/name::path/file.safetensors, downloaded and cached on first load) or a path to a .safetensors file already on the worker. The default is Comfy-Org's ungated repack: a fresh worker has no Hugging Face credentials, and krea/Krea-2-Turbo is licence-gated (401), so it would need HF_TOKEN and an accepted licence.",
+          "default": "Comfy-Org/Krea-2::diffusion_models/krea2_turbo_fp8_scaled.safetensors",
           "required": true
         }
       },
